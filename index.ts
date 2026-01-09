@@ -145,20 +145,25 @@ export function toMermaid(
     const entry = includeEntry ? getEntryActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
 
-    // Build state description with all metadata
+    // Build state description with state name header + metadata
     if (!seenStates.has(name)) {
+      seenStates.add(name);
       const parts: string[] = [];
       if (desc) parts.push(desc);
       if (entry.length > 0) parts.push(`entry - ${entry.join(', ')}`);
       if (invokes.length > 0) parts.push(`invoke - ${invokes.map(i => `${i.src}(${i.id})`).join(', ')}`);
 
+      // Always show state name as header, with description below if present
       if (parts.length > 0) {
-        seenStates.add(name);
         let text = parts.join(' | ');
         if (maxLen > 0 && text.length > maxLen) {
           text = text.substring(0, maxLen) + "...";
         }
-        lines.push(`    ${name}: ${text}`);
+        // State name as header, description below (using \n for line break)
+        lines.push(`    ${name}: ${name}\\n${text}`);
+      } else {
+        // No description - just show state name
+        lines.push(`    ${name}: ${name}`);
       }
     }
 
@@ -249,9 +254,14 @@ export function toMermaidNested(
         const text = maxLen > 0 && desc.length > maxLen ? desc.substring(0, maxLen) + "..." : desc;
         lines.push(`${pad}note right of ${name}: ${text}`);
       }
-    } else if (desc) {
-      const text = maxLen > 0 && desc.length > maxLen ? desc.substring(0, maxLen) + "..." : desc;
-      lines.push(`${pad}${name}: ${text}`);
+    } else {
+      // Leaf state - always show state name, add description if present
+      if (desc) {
+        const text = maxLen > 0 && desc.length > maxLen ? desc.substring(0, maxLen) + "..." : desc;
+        lines.push(`${pad}${name}: ${name}\\n${text}`);
+      } else {
+        lines.push(`${pad}${name}: ${name}`);
+      }
     }
   }
 

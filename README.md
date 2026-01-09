@@ -102,29 +102,30 @@ Output (actual generated output, not manually written):
 stateDiagram-v2
     %% Order Processing
     [*] --> idle
-    idle: Waiting for order submission
+    idle: idle\nWaiting for order submission
     idle --> validating: SUBMIT [stockAvailable] / reserveStock
-    validating: INVARIANT - stock reserved, payment not charged | entry - notifyUser
+    validating: validating\nINVARIANT - stock reserved, payment not charged | entry - notifyUser
     validating --> cancelled: CANCEL / releaseStock
     validating --> processing: after 5000ms
-    processing: Processing payment | invoke - paymentProcessor(payment)
+    processing: processing\nProcessing payment | invoke - paymentProcessor(payment)
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: Order fulfilled. INVARIANT - payment charged, stock shipped | entry - chargeCard
-    failed: Payment failed. Manual retry available. | entry - releaseStock
+    completed: completed\nOrder fulfilled. INVARIANT - payment charged, stock shipped | entry - chargeCard
+    failed: failed\nPayment failed. Manual retry available. | entry - releaseStock
     failed --> processing: RETRY [hasValidPayment]
-    cancelled: Order cancelled by user
+    cancelled: cancelled\nOrder cancelled by user
 ```
 
 Here is the stately.ai web render for the same Typescript Source of Truth:
 <img width="623" height="810" alt="{46F63723-28FE-46BC-B64C-345A93559027}" src="https://github.com/user-attachments/assets/b2c9dd9c-7bb7-464f-aedd-1f8510a60c95" />
 
 This example demonstrates ALL supported fields:
-- **State descriptions**: `idle: Waiting for order submission`
+- **State name headers**: Every state shows its name as header (like Stately.ai)
+- **State descriptions**: `idle: idle\nWaiting for order submission`
 - **Transition guards**: `SUBMIT [stockAvailable]`
 - **Transition actions**: `SUBMIT [stockAvailable] / reserveStock`
-- **Entry actions**: `validating: ... | entry - notifyUser`
-- **Invoke actors**: `processing: ... | invoke - paymentProcessor(payment)`
+- **Entry actions**: `validating: validating\n... | entry - notifyUser`
+- **Invoke actors**: `processing: processing\n... | invoke - paymentProcessor(payment)`
 - **Timeout transitions**: `after 5000ms` (raw milliseconds, matching Stately.ai format)
 
 ## API
@@ -169,11 +170,12 @@ formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 ## Features
 
 - XState v5 TypeScript compatible
-- Preserves state descriptions as labels
+- **State name headers**: Every state shows its name as title (Stately.ai parity)
+- Preserves state descriptions as labels below the header
 - **Guards**: Shows guards on transitions as `event [guardName]`
 - **Transition actions**: Shows actions as `event / action1, action2`
-- **Entry actions**: Shows entry actions as `state: ... | entry - action1, action2`
-- **Invoke actors**: Shows invoked actors as `state: ... | invoke - machine(id)`
+- **Entry actions**: Shows entry actions as `state\n... | entry - action1, action2`
+- **Invoke actors**: Shows invoked actors as `state\n... | invoke - machine(id)`
 - Handles nested/compound states
 - Formats timeout events with raw milliseconds (`after 60000ms`)
 - Extracts clean state names from dotted paths
