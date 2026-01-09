@@ -121,9 +121,9 @@ stateDiagram-v2
     cancelled: <b>cancelled</b><br/>Order cancelled by user
 ```
 
-Here is the stately.ai web render for the same Typescript Source of Truth (sorry for light mode):
+Here is the stately.ai web render for the same Typescript Source of Truth and UX parity check:
 
-<img width="623" height="810" alt="{46F63723-28FE-46BC-B64C-345A93559027}" src="https://github.com/user-attachments/assets/b2c9dd9c-7bb7-464f-aedd-1f8510a60c95" />
+<img width="454" height="692" alt="{85EC873A-DA54-4E43-AC4E-457A7BBCB776}" src="https://github.com/user-attachments/assets/c6ffb393-9ae6-48a6-a165-19f22c425b67" />
 
 ## Stately.ai Visual Parity
 
