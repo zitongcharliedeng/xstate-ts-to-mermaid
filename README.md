@@ -1,4 +1,4 @@
-# xstate-to-mermaid
+# xstate-ts-to-mermaid
 
 Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format.
 
@@ -9,14 +9,14 @@ XState v5 has no built-in Mermaid export. The official recommendation from David
 ## Installation
 
 ```bash
-npm install xstate-to-mermaid
+npm install xstate-ts-to-mermaid
 ```
 
 ## Usage
 
 ```typescript
 import { setup } from "xstate";
-import { toMermaid } from "xstate-to-mermaid";
+import { toMermaid } from "xstate-ts-to-mermaid";
 
 const containerMachine = setup({
   types: {

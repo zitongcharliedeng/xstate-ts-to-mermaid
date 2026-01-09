@@ -1,7 +1,7 @@
 {
-  "name": "xstate-to-mermaid",
+  "name": "xstate-ts-to-mermaid",
   "version": "0.1.0",
-  "description": "Convert XState v5 state machines to Mermaid stateDiagram-v2 format",
+  "description": "Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,13 +24,14 @@
     "state-machine",
     "statechart",
     "diagram",
-    "visualization"
+    "visualization",
+    "typescript"
   ],
   "author": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/xstate-to-mermaid.git"
+    "url": "git+https://github.com/zitongcharliedeng/xstate-ts-to-mermaid.git"
   },
   "peerDependencies": {
     "@xstate/graph": "^3.0.0",
