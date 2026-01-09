@@ -4,7 +4,7 @@ Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format wi
 
 ## Why?
 
-XState v5 has no built-in Mermaid export. The official recommendation from David Piano is to use `@xstate/graph`'s `toDirectedGraph()` and write your own converter. This is that converter.
+XState v5 has no built-in Mermaid export. The official recommendation from David Piano is to use `@xstate/graph`'s `toDirectedGraph()` and write your own converter. This is an example converter that aims for visual parity with Stately.ai's editor, unlike the simplified Mermaid export Stately.ai currently provides.
 
 ## Installation
 
@@ -19,7 +19,7 @@ import { setup } from "xstate";
 import { toMermaid } from "xstate-ts-to-mermaid";
 
 // Example showcasing ALL supported XState v5 fields:
-// description, tags (with 🔒 invariants), entry, exit, invoke, on, after
+// description, tags, entry, exit, invoke, on, after
 const orderMachine = setup({
   types: {
     events: {} as
@@ -133,24 +133,20 @@ stateDiagram-v2
     cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ logCancellation<br/>───────────<br/><b><i>Exit actions</i></b><br/>⚡ cleanupResources
 ```
 
-## Using Tags for Invariants
-
-Tags can contain any string including emojis and spaces. Use the 🔒 prefix for state invariants:
-
-```typescript
-validating: {
-  tags: ["loading", "🔒 stock_reserved", "🔒 payment_not_charged"],
-}
-```
-
-This renders as: `🏷️ loading, 🔒 stock_reserved, 🔒 payment_not_charged`
+**Legend for this example:**
+| Symbol | Meaning |
+|--------|---------|
+| 🏷️ | Tags (rendered by library) |
+| 🔒 | [State invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) (convention used in this example's tag names) |
+| ⚡ | Action |
+| ◉ | Invoked actor |
 
 ## Stately.ai Visual Parity
 
 This library renders all official XState v5 state node fields:
 
 - **`description`** - State description text
-- **`tags`** - Array of tags with 🏷️ prefix (use 🔒 prefix in tag names for invariants)
+- **`tags`** - Array of tags with 🏷️ prefix (tags can contain any string including emojis)
 - **`meta`** - Generic key-value metadata (rendered with *italicized* keys)
 - **`entry`** - Entry actions with ⚡ prefix
 - **`exit`** - Exit actions with ⚡ prefix
@@ -167,17 +163,17 @@ Visual formatting:
 
 **Warning:** The `meta` field is valid XState v5, but **Stately.ai's visual editor has no UI for it**. When you import a machine with `meta` into Stately.ai and export it, the `meta` field gets cleansed/dropped.
 
-**Recommendation:** Use `tags` for state invariants and categorization - tags survive Stately.ai round-trips.
+**Recommendation:** Use `tags` instead of `meta` - tags survive Stately.ai round-trips.
 
 ```typescript
 // RECOMMENDED - survives Stately.ai import/export
 validating: {
-  tags: ["loading", "🔒 stock_reserved"],
+  tags: ["loading", "stock_reserved"],
 }
 
 // WORKS but gets cleansed by Stately.ai visual editor
 validating: {
-  meta: { invariants: ["stock_reserved"] },
+  meta: { category: "processing" },
 }
 ```
 
@@ -257,7 +253,7 @@ This deterministically checks that every renderable XState v5 field is present i
 - `<b><i>` bold+italic section headers (Entry actions, Exit actions, Invoke)
 - `───────────` horizontal separators for visual distinction
 - `<br/>` proper line breaks
-- 🏷️ tags support (use 🔒 prefix for invariants)
+- 🏷️ tags support (any string, including emojis and spaces)
 - `meta` rendered with italicized keys (warning: cleansed by Stately.ai)
 - ⚡ entry, exit, and transition actions
 - ◉ invoke actors with source and ID
