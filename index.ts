@@ -213,9 +213,9 @@ function buildStateLabel(
   lines.push(`<b>${name.toLowerCase()}</b>`);
   lines.push(`━━━━━━━━━━━━━━`);
 
-  // Description: subscript for smaller text (Stately.ai shows lighter/smaller text)
+  // Description: superscript to sit closer to title (sub was merging with tags below)
   if (desc) {
-    lines.push(`<sub>${desc}</sub>`);
+    lines.push(`<sup>${desc}</sup>`);
   }
 
   // Tags - each on own line in parentheses for pill-like appearance
