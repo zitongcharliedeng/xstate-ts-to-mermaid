@@ -139,18 +139,26 @@ export function formatTransitionLabel(
 ): string {
   const { includeGuards = true, includeActions = true } = options;
 
-  let label = formatEventName(transition.eventType);
+  // Format event name based on type:
+  // - Normal events (CANCEL, PAYMENT_SUCCESS) -> bold
+  // - Delayed transitions (after Xms) -> italic (temporal triggers look different)
+  const formattedEvent = formatEventName(transition.eventType);
+  const isDelayed = formattedEvent.startsWith('after ');
+  let label = isDelayed ? `<i>${formattedEvent}</i>` : `<b>${formattedEvent}</b>`;
 
   if (includeGuards && transition.guard?.type) {
     label += ` IF ${transition.guard.type}`;
   }
 
+  // Action names NOT bold - contrast with bold event name
+  // Using square brackets for visual containment (like Stately's pill shapes)
   if (includeActions && transition.actions && transition.actions.length > 0) {
     const actionNames = transition.actions
       .map(a => a.type)
       .filter(t => t && !t.startsWith('xstate.'));
     if (actionNames.length > 0) {
-      label += `<br/>ϟ ${actionNames.join(', ')}`;
+      const formatted = actionNames.map(a => `[${a}]`).join(' ');
+      label += `<br/>ϟ ${formatted}`;
     }
   }
 
@@ -226,34 +234,34 @@ function buildStateLabel(
 
   // Entry actions (separator + bold Title Case label - matching reference UX)
   // Using unicode box drawing for separator, ϟ (koppa) for lightning-like action symbol
-  // Action names in angle brackets ⟨⟩ for visual containment, italic for contrast
+  // Action names in square brackets for visual containment (plain text, not italic)
   if (entry.length > 0) {
     lines.push(`────────`);
     lines.push(`<b>Entry actions</b>`);
     for (const action of entry) {
-      lines.push(`ϟ ⟨<i>${action}</i>⟩`);
+      lines.push(`ϟ [${action}]`);
     }
   }
 
   // Exit actions (separator + bold Title Case label - matching reference UX)
-  // Action names in angle brackets for visual containment
+  // Action names in square brackets for visual containment
   if (exit.length > 0) {
     lines.push(`────────`);
     lines.push(`<b>Exit actions</b>`);
     for (const action of exit) {
-      lines.push(`ϟ ⟨<i>${action}</i>⟩`);
+      lines.push(`ϟ [${action}]`);
     }
   }
 
   // Invokes (separator + bold Title Case label - matching reference UX)
   // Using ◉ (fisheye) to match Stately.ai's invoke symbol
-  // Actor names italic for contrast
+  // Actor names plain (only description is italic)
   if (invokes.length > 0) {
     lines.push(`────────`);
     lines.push(`<b>Invoke</b>`);
     for (const inv of invokes) {
-      lines.push(`◉ <i>${escapeMermaidText(inv.src)}</i>`);
-      lines.push(`Actor ID∶ <i>${escapeMermaidText(inv.id)}</i>`);
+      lines.push(`◉ ${escapeMermaidText(inv.src)}`);
+      lines.push(`Actor ID∶ ${escapeMermaidText(inv.id)}`);
     }
   }
 

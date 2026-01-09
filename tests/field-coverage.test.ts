@@ -115,23 +115,23 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "entry",
-    pattern: /Entry actions.*ϟ ⟨<i>onEnter<\/i>⟩/s,
-    description: "Entry actions section with angle-bracketed italic action name",
+    pattern: /Entry actions.*ϟ \[onEnter\]/s,
+    description: "Entry actions section with bracketed action name",
   },
   {
     field: "exit",
-    pattern: /Exit actions.*ϟ ⟨<i>onExit<\/i>⟩/s,
-    description: "Exit actions section with angle-bracketed italic action name",
+    pattern: /Exit actions.*ϟ \[onExit\]/s,
+    description: "Exit actions section with bracketed action name",
   },
   {
     field: "invoke",
-    pattern: /Invoke.*◉ <i>someService<\/i>.*Actor ID∶ <i>FIELD_INVOKE_CHECK<\/i>/s,
-    description: "Invoke actors section with italic actor names",
+    pattern: /Invoke.*◉ someService.*Actor ID∶ FIELD_INVOKE_CHECK/s,
+    description: "Invoke actors section with plain actor names",
   },
   {
     field: "on (transitions)",
-    pattern: /stateA --> stateB: GO/,
-    description: "Event transitions",
+    pattern: /stateA --> stateB: <b>GO<\/b>/,
+    description: "Event transitions with bold event name",
   },
   {
     field: "on (guards)",
@@ -140,13 +140,13 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "on (actions)",
-    pattern: /ϟ transitionAction/,
-    description: "Actions on transitions with lightning symbol",
+    pattern: /ϟ \[transitionAction\]/,
+    description: "Actions on transitions with bracketed name",
   },
   {
     field: "after",
-    pattern: /after 1000ms/,
-    description: "Delayed transitions",
+    pattern: /<i>after 1000ms<\/i>/,
+    description: "Delayed transitions (italic for temporal triggers)",
   },
 ];
 
