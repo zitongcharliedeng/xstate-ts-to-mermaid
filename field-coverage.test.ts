@@ -103,8 +103,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "tags",
-    pattern: /🏷️ 🔒 invariant_a.*🏷️ category/s,
-    description: "Each tag on own line with emoji",
+    pattern: /\[🔒 invariant_a\].*\[category\]/s,
+    description: "Tags in brackets for pill-like appearance",
   },
   {
     field: "meta",

@@ -117,19 +117,17 @@ Output (actual generated output, not manually written):
 
 ```mermaid
 stateDiagram-v2
-    %% Order Processing
-    %% ───────────────────────────
     [*] --> idle
     idle: <b>idle</b><br/>Waiting for order submission
     idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
-    validating: <b>validating</b><br/>🏷️ loading<br/>🏷️ 🔒 stock_reserved<br/>🏷️ 🔒 payment_not_charged<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
+    validating: <b>validating</b><br/>[loading] [🔒 stock_reserved] [🔒 payment_not_charged]<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
     validating --> cancelled: CANCEL<br/>⚡ releaseStock
     validating --> processing: after 5000ms
-    processing: <b>processing</b><br/>Processing payment<br/>🏷️ loading<br/>🏷️ 🔒 stock_reserved<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
+    processing: <b>processing</b><br/>Processing payment<br/>[loading] [🔒 stock_reserved]<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: <b>completed</b><br/>Order fulfilled<br/>🏷️ success<br/>🏷️ 🔒 payment_charged<br/>🏷️ 🔒 stock_shipped<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
-    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>🏷️ error<br/>🏷️ 🔒 stock_released<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
+    completed: <b>completed</b><br/>Order fulfilled<br/>[success] [🔒 payment_charged] [🔒 stock_shipped]<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>[error] [🔒 stock_released]<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
     failed --> processing: RETRY IF hasValidPayment
     cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ logCancellation<br/>───────────<br/><b><i>Exit actions</i></b><br/>⚡ cleanupResources
 ```
@@ -137,31 +135,35 @@ stateDiagram-v2
 **Legend for this example:**
 | Symbol | Meaning |
 |--------|---------|
-| 🏷️ | Tags (rendered by library) |
+| `[tag]` | Tags in brackets (pill-like styling) |
 | 🔒 | [State invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) (convention used in this example's tag names) |
 | ⚡ | Action |
 | ◉ | Invoked actor |
 
 ## Stately.ai Visual Parity
 
-### Reference: Stately.ai Editor
-
-<img src="docs/stately-ai-reference.png" alt="Stately.ai editor screenshot" width="500"/>
-
-### This Library's Output
-
-See the [Mermaid diagram above](#usage) - rendered from the same XState machine definition.
+<table>
+<tr>
+<th>Stately.ai Editor (Reference)</th>
+<th>This Library (Mermaid Output)</th>
+</tr>
+<tr>
+<td><img src="docs/stately-ai-reference.png" alt="Stately.ai editor" width="400"/></td>
+<td><img src="docs/library-output.png" alt="Library mermaid output" width="400"/></td>
+</tr>
+</table>
 
 **Key visual elements preserved:**
 - Each tag as a separate item (like Stately's pill/chip styling)
 - Bold state names
 - Separated action sections
 - Guard conditions on transitions
+- Entry/exit actions with icons
 
 This library renders all official XState v5 state node fields:
 
 - **`description`** - State description text
-- **`tags`** - Array of tags with 🏷️ prefix (tags can contain any string including emojis)
+- **`tags`** - Array of tags in brackets (tags can contain any string including emojis)
 - **`meta`** - Generic key-value metadata (rendered with *italicized* keys)
 - **`entry`** - Entry actions with ⚡ prefix
 - **`exit`** - Exit actions with ⚡ prefix
@@ -197,7 +199,7 @@ validating: {
 | Field | Description | Rendering |
 |-------|-------------|-----------|
 | `description` | State description | Plain text below state name |
-| `tags` | Array of string tags | `🏷️ tag1, tag2` |
+| `tags` | Array of string tags | `[tag1] [tag2]` |
 | `meta` | Generic metadata object | `*key* - value` (italicized keys) |
 | `entry` | Entry actions array | Section with `⚡ actionName` |
 | `exit` | Exit actions array | Section with `⚡ actionName` |
@@ -268,7 +270,7 @@ This deterministically checks that every renderable XState v5 field is present i
 - `<b><i>` bold+italic section headers (Entry actions, Exit actions, Invoke)
 - `───────────` horizontal separators for visual distinction
 - `<br/>` proper line breaks
-- 🏷️ tags support (any string, including emojis and spaces)
+- `[tag]` bracket notation for tags (pill-like styling, supports any string including emojis)
 - `meta` rendered with italicized keys (warning: cleansed by Stately.ai)
 - ⚡ entry, exit, and transition actions
 - ◉ invoke actors with source and ID
