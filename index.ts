@@ -226,22 +226,22 @@ function buildStateLabel(
 
   // Entry actions (separator + bold Title Case label - matching reference UX)
   // Using unicode box drawing for separator, ϟ (koppa) for lightning-like action symbol
-  // Action names in box-like brackets 「」for visual containment, italic for contrast
+  // Action names in angle brackets ⟨⟩ for visual containment, italic for contrast
   if (entry.length > 0) {
     lines.push(`────────`);
     lines.push(`<b>Entry actions</b>`);
     for (const action of entry) {
-      lines.push(`ϟ 「<i>${action}</i>」`);
+      lines.push(`ϟ ⟨<i>${action}</i>⟩`);
     }
   }
 
   // Exit actions (separator + bold Title Case label - matching reference UX)
-  // Action names in box-like brackets for visual containment
+  // Action names in angle brackets for visual containment
   if (exit.length > 0) {
     lines.push(`────────`);
     lines.push(`<b>Exit actions</b>`);
     for (const action of exit) {
-      lines.push(`ϟ 「<i>${action}</i>」`);
+      lines.push(`ϟ ⟨<i>${action}</i>⟩`);
     }
   }
 

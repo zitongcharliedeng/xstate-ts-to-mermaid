@@ -115,13 +115,13 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "entry",
-    pattern: /Entry actions.*ϟ 「<i>onEnter<\/i>」/s,
-    description: "Entry actions section with boxed italic action name",
+    pattern: /Entry actions.*ϟ ⟨<i>onEnter<\/i>⟩/s,
+    description: "Entry actions section with angle-bracketed italic action name",
   },
   {
     field: "exit",
-    pattern: /Exit actions.*ϟ 「<i>onExit<\/i>」/s,
-    description: "Exit actions section with boxed italic action name",
+    pattern: /Exit actions.*ϟ ⟨<i>onExit<\/i>⟩/s,
+    description: "Exit actions section with angle-bracketed italic action name",
   },
   {
     field: "invoke",
