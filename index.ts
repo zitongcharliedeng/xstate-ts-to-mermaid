@@ -22,6 +22,8 @@ export interface MermaidOptions {
   includeActions?: boolean;
   /** Include entry actions in state descriptions. Default: true */
   includeEntryActions?: boolean;
+  /** Include exit actions in state descriptions. Default: true */
+  includeExitActions?: boolean;
   /** Include invoke actors in state descriptions. Default: true */
   includeInvokes?: boolean;
   /** Include tags in state descriptions. Default: true */
@@ -81,6 +83,15 @@ export function getEntryActions(node: DirectedGraphNode): string[] {
 }
 
 /**
+ * Get exit actions from state node
+ */
+export function getExitActions(node: DirectedGraphNode): string[] {
+  const stateNode = node.stateNode as unknown as Record<string, unknown>;
+  const exit = stateNode?.exit as Array<{ type: string }> | undefined;
+  return exit?.map(a => a.type).filter(t => t && !t.startsWith('xstate.')) || [];
+}
+
+/**
  * Get invoke actors from state node
  */
 export function getInvokes(node: DirectedGraphNode): Array<{ src: string; id: string }> {
@@ -135,17 +146,18 @@ export function formatTransitionLabel(
 }
 
 /**
- * Format meta object as key-value lines
+ * Format meta object as key-value lines with italicized keys
+ * Note: meta is valid XState but gets cleansed by Stately.ai visual editor (no UI for it)
  */
 function formatMeta(meta: Record<string, unknown>): string[] {
   const lines: string[] = [];
   for (const [key, value] of Object.entries(meta)) {
     if (Array.isArray(value)) {
-      lines.push(`${key} - ${value.join(', ')}`);
+      lines.push(`<i>${key}</i> - ${value.join(', ')}`);
     } else if (typeof value === 'object' && value !== null) {
-      lines.push(`${key} - ${JSON.stringify(value)}`);
+      lines.push(`<i>${key}</i> - ${JSON.stringify(value)}`);
     } else {
-      lines.push(`${key} - ${String(value)}`);
+      lines.push(`<i>${key}</i> - ${String(value)}`);
     }
   }
   return lines;
@@ -156,8 +168,9 @@ function formatMeta(meta: Record<string, unknown>): string[] {
  * - State name as bold header
  * - Description below
  * - Tags with 🏷️ prefix
- * - Meta as key-value pairs
+ * - Meta as key-value pairs (italicized keys)
  * - Entry actions section with separator + bold italic label
+ * - Exit actions section with separator + bold italic label
  * - Invoke section with separator + bold italic label
  */
 function buildStateLabel(
@@ -166,6 +179,7 @@ function buildStateLabel(
   tags: string[],
   meta: Record<string, unknown> | undefined,
   entry: string[],
+  exit: string[],
   invokes: Array<{ src: string; id: string }>,
   maxLen: number
 ): string {
@@ -184,7 +198,7 @@ function buildStateLabel(
     lines.push(`🏷️ ${tags.join(', ')}`);
   }
 
-  // Meta as generic key-value pairs
+  // Meta as generic key-value pairs (italicized keys)
   if (meta && Object.keys(meta).length > 0) {
     const metaLines = formatMeta(meta);
     for (const line of metaLines) {
@@ -197,6 +211,15 @@ function buildStateLabel(
     lines.push(`───────────`);
     lines.push(`<b><i>Entry actions</i></b>`);
     for (const action of entry) {
+      lines.push(`⚡ ${action}`);
+    }
+  }
+
+  // Exit actions (separator + bold italic label for visual distinction)
+  if (exit.length > 0) {
+    lines.push(`───────────`);
+    lines.push(`<b><i>Exit actions</i></b>`);
+    for (const action of exit) {
       lines.push(`⚡ ${action}`);
     }
   }
@@ -244,6 +267,7 @@ export function toMermaid(
   }
 
   const includeEntry = options.includeEntryActions ?? true;
+  const includeExit = options.includeExitActions ?? true;
   const includeInvoke = options.includeInvokes ?? true;
   const includeTagsOpt = options.includeTags ?? true;
   const includeMetaOpt = options.includeMeta ?? true;
@@ -252,6 +276,7 @@ export function toMermaid(
     const name = getStateName(node.id);
     const desc = getDescription(node);
     const entry = includeEntry ? getEntryActions(node) : [];
+    const exit = includeExit ? getExitActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
     const tags = includeTagsOpt ? getTags(node) : [];
     const meta = includeMetaOpt ? getMeta(node) : undefined;
@@ -259,9 +284,9 @@ export function toMermaid(
     if (!seenStates.has(name)) {
       seenStates.add(name);
 
-      const hasContent = desc || tags.length > 0 || (meta && Object.keys(meta).length > 0) || entry.length > 0 || invokes.length > 0;
+      const hasContent = desc || tags.length > 0 || (meta && Object.keys(meta).length > 0) || entry.length > 0 || exit.length > 0 || invokes.length > 0;
       if (hasContent) {
-        const label = buildStateLabel(name, desc, tags, meta, entry, invokes, maxLen);
+        const label = buildStateLabel(name, desc, tags, meta, entry, exit, invokes, maxLen);
         lines.push(`    ${name}: ${label}`);
       } else {
         lines.push(`    ${name}: ${name}`);
@@ -314,6 +339,7 @@ export function toMermaidNested(
   const maxLen = options.maxDescriptionLength ?? 0;
   const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
   const includeEntry = options.includeEntryActions ?? true;
+  const includeExit = options.includeExitActions ?? true;
   const includeInvoke = options.includeInvokes ?? true;
   const includeTagsOpt = options.includeTags ?? true;
   const includeMetaOpt = options.includeMeta ?? true;
@@ -329,6 +355,7 @@ export function toMermaidNested(
     const hasChildren = node.children && node.children.length > 0;
     const desc = getDescription(node);
     const entry = includeEntry ? getEntryActions(node) : [];
+    const exit = includeExit ? getExitActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
     const tags = includeTagsOpt ? getTags(node) : [];
     const meta = includeMetaOpt ? getMeta(node) : undefined;
@@ -364,9 +391,9 @@ export function toMermaidNested(
         lines.push(`${pad}note right of ${name}: ${text}`);
       }
     } else {
-      const hasContent = desc || tags.length > 0 || (meta && Object.keys(meta).length > 0) || entry.length > 0 || invokes.length > 0;
+      const hasContent = desc || tags.length > 0 || (meta && Object.keys(meta).length > 0) || entry.length > 0 || exit.length > 0 || invokes.length > 0;
       if (hasContent) {
-        const label = buildStateLabel(name, desc, tags, meta, entry, invokes, maxLen);
+        const label = buildStateLabel(name, desc, tags, meta, entry, exit, invokes, maxLen);
         lines.push(`${pad}${name}: ${label}`);
       } else {
         lines.push(`${pad}${name}: ${name}`);

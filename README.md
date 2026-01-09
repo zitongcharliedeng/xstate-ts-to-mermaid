@@ -27,7 +27,7 @@ const orderMachine = setup({
       | { type: "PAYMENT_SUCCESS" }
       | { type: "PAYMENT_FAILED" }
       | { type: "RETRY" },
-    tags: {} as "loading" | "error" | "success",
+    tags: {} as "loading" | "error" | "success" | "stock_reserved" | "payment_not_charged" | "payment_charged" | "stock_shipped" | "stock_released",
   },
   guards: {
     hasValidPayment: () => true,
@@ -57,7 +57,7 @@ const orderMachine = setup({
       },
     },
     validating: {
-      tags: ["loading"],
+      tags: ["loading", "stock_reserved", "payment_not_charged"],
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -67,7 +67,7 @@ const orderMachine = setup({
       },
     },
     processing: {
-      tags: ["loading"],
+      tags: ["loading", "stock_reserved"],
       description: "Processing payment",
       invoke: [{ src: "paymentProcessor", id: "payment" }],
       on: {
@@ -76,12 +76,12 @@ const orderMachine = setup({
       },
     },
     completed: {
-      tags: ["success"],
+      tags: ["success", "payment_charged", "stock_shipped"],
       description: "Order fulfilled",
       entry: [{ type: "chargeCard" }],
     },
     failed: {
-      tags: ["error"],
+      tags: ["error", "stock_released"],
       description: "Payment failed. Manual retry available.",
       entry: [{ type: "releaseStock" }],
       on: {
@@ -108,14 +108,14 @@ stateDiagram-v2
     [*] --> idle
     idle: <b>idle</b><br/>Waiting for order submission
     idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
-    validating: <b>validating</b><br/>🏷️ loading<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
+    validating: <b>validating</b><br/>🏷️ loading, stock_reserved, payment_not_charged<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
     validating --> cancelled: CANCEL<br/>⚡ releaseStock
     validating --> processing: after 5000ms
-    processing: <b>processing</b><br/>Processing payment<br/>🏷️ loading<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
+    processing: <b>processing</b><br/>Processing payment<br/>🏷️ loading, stock_reserved<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: <b>completed</b><br/>Order fulfilled<br/>🏷️ success<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
-    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>🏷️ error<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
+    completed: <b>completed</b><br/>Order fulfilled<br/>🏷️ success, payment_charged, stock_shipped<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>🏷️ error, stock_released<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
     failed --> processing: RETRY IF hasValidPayment
     cancelled: <b>cancelled</b><br/>Order cancelled by user
 ```
@@ -125,17 +125,36 @@ stateDiagram-v2
 This library renders all official XState v5 state node fields:
 
 - **`description`** - State description text
-- **`tags`** - Array of tags with 🏷️ prefix
-- **`meta`** - Generic key-value metadata (rendered as `key - value`)
+- **`tags`** - Array of tags with 🏷️ prefix (use for invariants/categorization)
+- **`meta`** - Generic key-value metadata (rendered with *italicized* keys)
 - **`entry`** - Entry actions with ⚡ prefix
+- **`exit`** - Exit actions with ⚡ prefix
 - **`invoke`** - Invoked actors with ◉ prefix
-- **`on`** / **`after`** / **`always`** - Transitions with guards (IF format)
+- **`on`** / **`after`** - Transitions with guards (IF format)
 
 Visual formatting:
 - **`<b>` Bold state headers**: State name rendered prominently
 - **`<br/>` Line breaks**: Proper separation between elements
 - **`───────────` Horizontal separators**: Visual distinction between content and action sections
-- **`<b><i>` Bold+italic section headers**: "Entry actions" and "Invoke" labels stand out clearly
+- **`<b><i>` Bold+italic section headers**: "Entry actions", "Exit actions", "Invoke" labels
+
+## Important: `meta` vs `tags`
+
+**Warning:** The `meta` field is valid XState v5, but **Stately.ai's visual editor has no UI for it**. When you import a machine with `meta` into Stately.ai and export it, the `meta` field gets cleansed/dropped.
+
+**Recommendation:** Use `tags` for state invariants and categorization - tags survive Stately.ai round-trips.
+
+```typescript
+// RECOMMENDED - survives Stately.ai import/export
+validating: {
+  tags: ["loading", "stock_reserved", "payment_not_charged"],
+}
+
+// WORKS but gets cleansed by Stately.ai visual editor
+validating: {
+  meta: { invariants: ["stock_reserved"] },
+}
+```
 
 ## Supported XState Fields
 
@@ -143,8 +162,9 @@ Visual formatting:
 |-------|-------------|-----------|
 | `description` | State description | Plain text below state name |
 | `tags` | Array of string tags | `🏷️ tag1, tag2` |
-| `meta` | Generic metadata object | Each key-value as `key - value` |
+| `meta` | Generic metadata object | `*key* - value` (italicized keys) |
 | `entry` | Entry actions array | Section with `⚡ actionName` |
+| `exit` | Exit actions array | Section with `⚡ actionName` |
 | `invoke` | Invoked actors | Section with `◉ actorSrc` and `Actor ID - id` |
 | `on` | Event transitions | `EVENT IF guard` on edges |
 | `after` | Delayed transitions | `after Xms` on edges |
@@ -168,6 +188,7 @@ interface MermaidOptions {
   includeGuards?: boolean; // Show guards on transitions (default: true)
   includeActions?: boolean; // Show transition actions (default: true)
   includeEntryActions?: boolean; // Show entry actions on states (default: true)
+  includeExitActions?: boolean; // Show exit actions on states (default: true)
   includeInvokes?: boolean; // Show invoke actors on states (default: true)
   includeTags?: boolean; // Show tags on states (default: true)
   includeMeta?: boolean; // Show meta on states (default: true)
@@ -182,6 +203,7 @@ import {
   formatEventName,
   getDescription,
   getEntryActions,
+  getExitActions,
   getInvokes,
   getTags,
   getMeta,
@@ -197,12 +219,12 @@ formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 - XState v5 TypeScript compatible
 - **Stately.ai visual parity** - renders all official XState state node fields
 - `<b>` bold state name headers
-- `<b><i>` bold+italic section headers (Entry actions, Invoke)
+- `<b><i>` bold+italic section headers (Entry actions, Exit actions, Invoke)
 - `───────────` horizontal separators for visual distinction
 - `<br/>` proper line breaks
-- 🏷️ tags support
-- `meta` rendered as key-value pairs
-- ⚡ entry and transition actions
+- 🏷️ tags support (recommended for invariants)
+- `meta` rendered with italicized keys (warning: cleansed by Stately.ai)
+- ⚡ entry, exit, and transition actions
 - ◉ invoke actors with source and ID
 - IF format for guards
 - Handles nested/compound states

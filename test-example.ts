@@ -14,7 +14,7 @@ const orderMachine = setup({
       | { type: "PAYMENT_SUCCESS" }
       | { type: "PAYMENT_FAILED" }
       | { type: "RETRY" },
-    tags: {} as "loading" | "error" | "success",
+    tags: {} as "loading" | "error" | "success" | "stock_reserved" | "payment_not_charged" | "payment_charged" | "stock_shipped" | "stock_released",
   },
   guards: {
     hasValidPayment: () => true,
@@ -44,7 +44,7 @@ const orderMachine = setup({
       },
     },
     validating: {
-      tags: ["loading"],
+      tags: ["loading", "stock_reserved", "payment_not_charged"],
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -54,7 +54,7 @@ const orderMachine = setup({
       },
     },
     processing: {
-      tags: ["loading"],
+      tags: ["loading", "stock_reserved"],
       description: "Processing payment",
       invoke: [{ src: "paymentProcessor", id: "payment" }],
       on: {
@@ -63,12 +63,12 @@ const orderMachine = setup({
       },
     },
     completed: {
-      tags: ["success"],
+      tags: ["success", "payment_charged", "stock_shipped"],
       description: "Order fulfilled",
       entry: [{ type: "chargeCard" }],
     },
     failed: {
-      tags: ["error"],
+      tags: ["error", "stock_released"],
       description: "Payment failed. Manual retry available.",
       entry: [{ type: "releaseStock" }],
       on: {
