@@ -132,33 +132,38 @@ stateDiagram-v2
     cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ logCancellation<br/>───────────<br/><b><i>Exit actions</i></b><br/>⚡ cleanupResources
 ```
 
-**Legend for this example:**
-| Symbol | Meaning |
-|--------|---------|
-| `[tag]` | Tags in brackets (pill-like styling) |
-| 🔒 | [State invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) (convention used in this example's tag names) |
-| ⚡ | Action |
-| ◉ | Invoked actor |
-
 ## Stately.ai Visual Parity
 
 <table>
 <tr>
 <th>Stately.ai Editor (Reference)</th>
 <th>This Library (Mermaid Output)</th>
+<th>Legend</th>
 </tr>
 <tr>
-<td><img src="docs/stately-ai-reference.png" alt="Stately.ai editor" width="400"/></td>
-<td><img src="docs/library-output.png" alt="Library mermaid output" width="400"/></td>
+<td valign="top"><img src="docs/stately-ai-reference.png" alt="Stately.ai editor" width="350"/></td>
+<td valign="top"><img src="docs/library-output.png" alt="Library mermaid output" width="350"/></td>
+<td valign="top">
+
+| Symbol | Meaning |
+|--------|---------|
+| `[tag]` | Tags (pill-like) |
+| 🔒 | State [invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) |
+| ⚡ | Action |
+| ◉ | Invoked actor |
+| `IF` | Guard condition |
+| `───` | Section separator |
+
+</td>
 </tr>
 </table>
 
-**Key visual elements preserved:**
-- Each tag as a separate item (like Stately's pill/chip styling)
-- Bold state names
-- Separated action sections
-- Guard conditions on transitions
-- Entry/exit actions with icons
+**Visual elements preserved:**
+- Bracketed tags for pill-like styling
+- Bold state names with `<b>` tags
+- Entry/exit action sections with separators
+- Guard conditions on transitions (`IF guardName`)
+- Invoke actors with source and ID
 
 This library renders all official XState v5 state node fields:
 
