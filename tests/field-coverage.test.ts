@@ -145,8 +145,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "after",
-    pattern: /<i>after 1000ms<\/i>/,
-    description: "Delayed transitions (italic for temporal triggers)",
+    pattern: /<i>after<\/i> 1000ms/,
+    description: "Delayed transitions (only 'after' is italic)",
   },
 ];
 

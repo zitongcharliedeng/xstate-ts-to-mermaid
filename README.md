@@ -14,7 +14,7 @@ Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format wi
 |:------:|---------|
 | **BOLD** | State name (uppercase), Event names |
 | `━━━━━━` | Header separator line |
-| *italic* | Description, delayed transitions (*after Xms*) |
+| *italic* | Description, *after* keyword (Xms is plain) |
 | `(tag)` | Tags (styled as pills in Stately.ai) |
 | `ϟ [action]` | Action in square brackets |
 | `◉` | Invoked actor - fisheye symbol |
@@ -147,7 +147,7 @@ stateDiagram-v2
     idle --> validating: <b>SUBMIT</b> IF stockAvailable<br/>ϟ [reserveStock]
     validating: <b>VALIDATING</b><br/>━━━━━━━━━━━━━━<br/>(loading)<br/>(Invariant∶stock_reserved)<br/>(Invariant∶payment_not_charged)<br/>────────<br/><b>Entry actions</b><br/>ϟ [notifyUser]
     validating --> cancelled: <b>CANCEL</b><br/>ϟ [releaseStock]
-    validating --> processing: <i>after 5000ms</i>
+    validating --> processing: <i>after</i> 5000ms
     processing: <b>PROCESSING</b><br/>━━━━━━━━━━━━━━<br/><i>Processing payment</i><br/>(loading)<br/>(Invariant∶stock_reserved)<br/>────────<br/><b>Invoke</b><br/>◉ paymentProcessor<br/>Actor ID∶ payment
     processing --> completed: <b>PAYMENT_SUCCESS</b>
     processing --> failed: <b>PAYMENT_FAILED</b>

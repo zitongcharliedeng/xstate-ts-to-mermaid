@@ -141,10 +141,16 @@ export function formatTransitionLabel(
 
   // Format event name based on type:
   // - Normal events (CANCEL, PAYMENT_SUCCESS) -> bold
-  // - Delayed transitions (after Xms) -> italic (temporal triggers look different)
+  // - Delayed transitions -> only "after" is italic, ms value is plain
   const formattedEvent = formatEventName(transition.eventType);
-  const isDelayed = formattedEvent.startsWith('after ');
-  let label = isDelayed ? `<i>${formattedEvent}</i>` : `<b>${formattedEvent}</b>`;
+  let label: string;
+  if (formattedEvent.startsWith('after ')) {
+    // "after 5000ms" -> "<i>after</i> 5000ms" (only "after" italic)
+    const ms = formattedEvent.substring(6); // everything after "after "
+    label = `<i>after</i> ${ms}`;
+  } else {
+    label = `<b>${formattedEvent}</b>`;
+  }
 
   if (includeGuards && transition.guard?.type) {
     label += ` IF ${transition.guard.type}`;
