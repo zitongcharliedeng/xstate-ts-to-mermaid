@@ -3,6 +3,7 @@
  * Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format
  *
  * Uses @xstate/graph's toDirectedGraph() to traverse state machine structure.
+ * Aims for visual parity with Stately.ai editor.
  */
 
 import {
@@ -86,7 +87,7 @@ export function getInvokes(node: DirectedGraphNode): Array<{ src: string; id: st
 
 /**
  * Format a transition label with event, guard, and actions
- * Format: "event [guard] / action1, action2"
+ * Stately.ai format: "EVENT IF guard" with "⚡ action" below
  */
 export function formatTransitionLabel(
   transition: { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] },
@@ -97,19 +98,68 @@ export function formatTransitionLabel(
   let label = formatEventName(transition.eventType);
 
   if (includeGuards && transition.guard?.type) {
-    label += ` [${transition.guard.type}]`;
+    label += ` IF ${transition.guard.type}`;
   }
 
   if (includeActions && transition.actions && transition.actions.length > 0) {
     const actionNames = transition.actions
       .map(a => a.type)
-      .filter(t => t && !t.startsWith('xstate.')); // Filter out internal xstate actions
+      .filter(t => t && !t.startsWith('xstate.'));
     if (actionNames.length > 0) {
-      label += ` / ${actionNames.join(', ')}`;
+      label += `<br/>⚡ ${actionNames.join(', ')}`;
     }
   }
 
   return label;
+}
+
+/**
+ * Build state label with Stately.ai-style formatting:
+ * - State name as header (bold via <b> if supported, otherwise just prominent)
+ * - Description on next line
+ * - Entry actions section with ⚡ emoji
+ * - Invoke section with actor info
+ */
+function buildStateLabel(
+  name: string,
+  desc: string | undefined,
+  entry: string[],
+  invokes: Array<{ src: string; id: string }>,
+  maxLen: number
+): string {
+  const lines: string[] = [];
+
+  // State name as header
+  lines.push(`<b>${name}</b>`);
+
+  // Description
+  if (desc) {
+    lines.push(desc);
+  }
+
+  // Entry actions (Stately.ai style with ⚡)
+  if (entry.length > 0) {
+    lines.push(`<br/>Entry actions`);
+    for (const action of entry) {
+      lines.push(`⚡ ${action}`);
+    }
+  }
+
+  // Invokes (Stately.ai style)
+  if (invokes.length > 0) {
+    lines.push(`<br/>Invoke`);
+    for (const inv of invokes) {
+      lines.push(`◉ ${inv.src}`);
+      lines.push(`Actor ID - ${inv.id}`);
+    }
+  }
+
+  let text = lines.join('<br/>');
+  if (maxLen > 0 && text.length > maxLen) {
+    text = text.substring(0, maxLen) + "...";
+  }
+
+  return text;
 }
 
 /**
@@ -145,24 +195,14 @@ export function toMermaid(
     const entry = includeEntry ? getEntryActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
 
-    // Build state description with state name header + metadata
     if (!seenStates.has(name)) {
       seenStates.add(name);
-      const parts: string[] = [];
-      if (desc) parts.push(desc);
-      if (entry.length > 0) parts.push(`entry - ${entry.join(', ')}`);
-      if (invokes.length > 0) parts.push(`invoke - ${invokes.map(i => `${i.src}(${i.id})`).join(', ')}`);
 
-      // Always show state name as header, with description below if present
-      if (parts.length > 0) {
-        let text = parts.join(' | ');
-        if (maxLen > 0 && text.length > maxLen) {
-          text = text.substring(0, maxLen) + "...";
-        }
-        // State name as header, description below (using \n for line break)
-        lines.push(`    ${name}: ${name}\\n${text}`);
+      const hasContent = desc || entry.length > 0 || invokes.length > 0;
+      if (hasContent) {
+        const label = buildStateLabel(name, desc, entry, invokes, maxLen);
+        lines.push(`    ${name}: ${label}`);
       } else {
-        // No description - just show state name
         lines.push(`    ${name}: ${name}`);
       }
     }
@@ -212,6 +252,8 @@ export function toMermaidNested(
   const processedEdges = new Set<string>();
   const maxLen = options.maxDescriptionLength ?? 0;
   const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
+  const includeEntry = options.includeEntryActions ?? true;
+  const includeInvoke = options.includeInvokes ?? true;
 
   lines.push("stateDiagram-v2");
   if (options.title) {
@@ -223,6 +265,8 @@ export function toMermaidNested(
     const name = getStateName(node.id);
     const hasChildren = node.children && node.children.length > 0;
     const desc = getDescription(node);
+    const entry = includeEntry ? getEntryActions(node) : [];
+    const invokes = includeInvoke ? getInvokes(node) : [];
     const stateNode = node.stateNode as unknown as Record<string, unknown>;
 
     if (hasChildren) {
@@ -255,10 +299,10 @@ export function toMermaidNested(
         lines.push(`${pad}note right of ${name}: ${text}`);
       }
     } else {
-      // Leaf state - always show state name, add description if present
-      if (desc) {
-        const text = maxLen > 0 && desc.length > maxLen ? desc.substring(0, maxLen) + "..." : desc;
-        lines.push(`${pad}${name}: ${name}\\n${text}`);
+      const hasContent = desc || entry.length > 0 || invokes.length > 0;
+      if (hasContent) {
+        const label = buildStateLabel(name, desc, entry, invokes, maxLen);
+        lines.push(`${pad}${name}: ${label}`);
       } else {
         lines.push(`${pad}${name}: ${name}`);
       }

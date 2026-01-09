@@ -1,6 +1,6 @@
 # xstate-ts-to-mermaid
 
-Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format.
+Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format with Stately.ai visual parity.
 
 ## Why?
 
@@ -102,32 +102,35 @@ Output (actual generated output, not manually written):
 stateDiagram-v2
     %% Order Processing
     [*] --> idle
-    idle: idle\nWaiting for order submission
-    idle --> validating: SUBMIT [stockAvailable] / reserveStock
-    validating: validating\nINVARIANT - stock reserved, payment not charged | entry - notifyUser
-    validating --> cancelled: CANCEL / releaseStock
+    idle: <b>idle</b><br/>Waiting for order submission
+    idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
+    validating: <b>validating</b><br/>INVARIANT - stock reserved, payment not charged<br/><br/>Entry actions<br/>⚡ notifyUser
+    validating --> cancelled: CANCEL<br/>⚡ releaseStock
     validating --> processing: after 5000ms
-    processing: processing\nProcessing payment | invoke - paymentProcessor(payment)
+    processing: <b>processing</b><br/>Processing payment<br/><br/>Invoke<br/>◉ paymentProcessor<br/>Actor ID - payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: completed\nOrder fulfilled. INVARIANT - payment charged, stock shipped | entry - chargeCard
-    failed: failed\nPayment failed. Manual retry available. | entry - releaseStock
-    failed --> processing: RETRY [hasValidPayment]
-    cancelled: cancelled\nOrder cancelled by user
+    completed: <b>completed</b><br/>Order fulfilled. INVARIANT - payment charged, stock shipped<br/><br/>Entry actions<br/>⚡ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/><br/>Entry actions<br/>⚡ releaseStock
+    failed --> processing: RETRY IF hasValidPayment
+    cancelled: <b>cancelled</b><br/>Order cancelled by user
 ```
 
 Here is the stately.ai web render for the same Typescript Source of Truth (sorry for light mode):
 
 <img width="623" height="810" alt="{46F63723-28FE-46BC-B64C-345A93559027}" src="https://github.com/user-attachments/assets/b2c9dd9c-7bb7-464f-aedd-1f8510a60c95" />
 
-This example demonstrates ALL supported fields:
-- **State name headers**: Every state shows its name as header (like Stately.ai)
-- **State descriptions**: `idle: idle\nWaiting for order submission`
-- **Transition guards**: `SUBMIT [stockAvailable]`
-- **Transition actions**: `SUBMIT [stockAvailable] / reserveStock`
-- **Entry actions**: `validating: validating\n... | entry - notifyUser`
-- **Invoke actors**: `processing: processing\n... | invoke - paymentProcessor(payment)`
-- **Timeout transitions**: `after 5000ms` (raw milliseconds, matching Stately.ai format)
+## Stately.ai Visual Parity
+
+This library aims to match Stately.ai's visual formatting:
+
+- **Bold state headers**: `<b>idle</b>` renders state name prominently
+- **Line breaks**: `<br/>` separates header, description, and metadata
+- **Entry actions with ⚡**: `Entry actions` section with lightning emoji
+- **Invoke actors with ◉**: `Invoke` section with actor details
+- **Guards with IF**: `SUBMIT IF stockAvailable` (Stately.ai format)
+- **Transition actions with ⚡**: Actions on separate line with emoji
+- **Timeout transitions**: `after 5000ms` (raw milliseconds)
 
 ## API
 
@@ -171,15 +174,15 @@ formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 ## Features
 
 - XState v5 TypeScript compatible
-- **State name headers**: Every state shows its name as title (Stately.ai parity)
-- Preserves state descriptions as labels below the header
-- **Guards**: Shows guards on transitions as `event [guardName]`
-- **Transition actions**: Shows actions as `event / action1, action2`
-- **Entry actions**: Shows entry actions as `state\n... | entry - action1, action2`
-- **Invoke actors**: Shows invoked actors as `state\n... | invoke - machine(id)`
+- **Stately.ai visual parity** - matches the official editor's formatting
+- Bold state name headers with `<b>` tags
+- Proper line breaks with `<br/>` (not literal `\n`)
+- Entry actions section with ⚡ emoji
+- Invoke section with ◉ and actor details
+- Guards displayed as `IF guardName`
+- Transition actions with ⚡ emoji on separate line
 - Handles nested/compound states
-- Formats timeout events with raw milliseconds (`after 60000ms`)
-- Extracts clean state names from dotted paths
+- Formats timeout events with raw milliseconds
 - Zero information loss - all metadata from XState is preserved
 
 ## License
