@@ -6,20 +6,21 @@ Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format wi
 
 <table>
 <tr>
-<th>Stately.ai Editor (Reference)</th>
-<th>This Library (Mermaid Output)</th>
+<th>Stately.ai Editor</th>
+<th>This Library (Mermaid)</th>
 <th>Legend</th>
 </tr>
 <tr>
-<td valign="top"><img src=".github/assets/stately-ai-reference.png" alt="Stately.ai editor" width="350"/></td>
-<td valign="top"><img src=".github/assets/library-output.png" alt="Library mermaid output" width="350"/></td>
+<td valign="top"><img src=".github/assets/stately-ai-reference.png" alt="Stately.ai editor" width="300"/></td>
+<td valign="top"><img src=".github/assets/library-output.png" alt="Library mermaid output" width="300"/></td>
 <td valign="top">
 
 | Symbol | Meaning |
-|--------|---------|
-| `[tag]` | Tags (pill-like) |
+|:------:|---------|
+| `[tag]` | Tags (pill-like styling) |
+| `<b>` | Bold state names |
 | 🔒 | State [invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) |
-| ⚡ | Action |
+| ⚡ | Action (entry/exit/transition) |
 | ◉ | Invoked actor |
 | `IF` | Guard condition |
 | `───` | Section separator |
@@ -27,13 +28,6 @@ Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format wi
 </td>
 </tr>
 </table>
-
-**Visual elements preserved:**
-- Bracketed tags for pill-like styling
-- Bold state names with `<b>` tags
-- Entry/exit action sections with separators
-- Guard conditions on transitions (`IF guardName`)
-- Invoke actors with source and ID
 
 ## Why?
 

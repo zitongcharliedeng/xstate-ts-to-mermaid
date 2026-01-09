@@ -9,7 +9,7 @@
 import { setup } from "xstate";
 import { toMermaid } from "../index.js";
 
-const orderMachine = setup({
+export const orderMachine = setup({
   types: {
     events: {} as
       | { type: "SUBMIT" }
