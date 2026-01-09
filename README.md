@@ -116,6 +116,9 @@ stateDiagram-v2
     cancelled: Order cancelled by user
 ```
 
+Here is the stately.ai web render for the same Typescript Source of Truth:
+<img width="623" height="810" alt="{46F63723-28FE-46BC-B64C-345A93559027}" src="https://github.com/user-attachments/assets/b2c9dd9c-7bb7-464f-aedd-1f8510a60c95" />
+
 This example demonstrates ALL supported fields:
 - **State descriptions**: `idle: Waiting for order submission`
 - **Transition guards**: `SUBMIT [stockAvailable]`
