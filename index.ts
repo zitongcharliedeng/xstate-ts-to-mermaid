@@ -156,15 +156,14 @@ export function formatTransitionLabel(
     label += ` IF ${transition.guard.type}`;
   }
 
-  // Action names NOT bold - contrast with bold event name
-  // Using square brackets for visual containment (like Stately's pill shapes)
+  // Action names in brackets with lightning inside (matching Stately.ai)
   if (includeActions && transition.actions && transition.actions.length > 0) {
     const actionNames = transition.actions
       .map(a => a.type)
       .filter(t => t && !t.startsWith('xstate.'));
     if (actionNames.length > 0) {
-      const formatted = actionNames.map(a => `[${a}]`).join(' ');
-      label += `<br/>ϟ ${formatted}`;
+      const formatted = actionNames.map(a => `[ϟ ${a}]`).join(' ');
+      label += `<br/>${formatted}`;
     }
   }
 
@@ -191,13 +190,12 @@ function formatMeta(meta: Record<string, unknown>): string[] {
 
 /**
  * Build state label with Stately.ai-style formatting:
- * - State name as bold header
- * - Description below
- * - Tags with 🏷️ prefix
- * - Meta as key-value pairs (italicized keys)
- * - Entry actions section with separator + bold italic label
- * - Exit actions section with separator + bold italic label
- * - Invoke section with separator + bold italic label
+ * - State name as bold header (lowercase like Stately.ai)
+ * - Description as plain text
+ * - Tags in parentheses
+ * - Meta as key-value pairs
+ * - Entry/Exit actions with lightning INSIDE brackets [ϟ action]
+ * - Invoke actors in brackets [◉ actor], Actor ID as subtext
  */
 function buildStateLabel(
   name: string,
@@ -211,19 +209,16 @@ function buildStateLabel(
 ): string {
   const lines: string[] = [];
 
-  // State name as prominent header block (like Stately.ai's dark header bar)
-  // Line above name, bold name, line below - matching reference UX
-  lines.push(`<b>${name.toUpperCase()}</b>`);
+  // State name: bold, lowercase (matching Stately.ai's style)
+  lines.push(`<b>${name.toLowerCase()}</b>`);
   lines.push(`━━━━━━━━━━━━━━`);
 
-  // Description (italic for contrast with bold titles)
+  // Description: plain text (Stately.ai shows normal weight text)
   if (desc) {
-    lines.push(`<i>${desc}</i>`);
+    lines.push(desc);
   }
 
-  // Tags - each on own line to prevent bad wrapping in narrow state boxes
-  // Using parentheses (tag) for pill-like appearance - brackets [] break Mermaid parser
-  // Escape colons in tag names as they break Mermaid state description syntax
+  // Tags - each on own line in parentheses for pill-like appearance
   if (tags.length > 0) {
     for (const tag of tags) {
       lines.push(`(${escapeMermaidText(tag)})`);
@@ -238,36 +233,31 @@ function buildStateLabel(
     }
   }
 
-  // Entry actions (separator + bold Title Case label - matching reference UX)
-  // Using unicode box drawing for separator, ϟ (koppa) for lightning-like action symbol
-  // Action names in square brackets for visual containment (plain text, not italic)
+  // Entry actions: italic label (lighter feel), lightning INSIDE brackets
   if (entry.length > 0) {
     lines.push(`────────`);
-    lines.push(`<b>Entry actions</b>`);
+    lines.push(`<i>Entry actions</i>`);
     for (const action of entry) {
-      lines.push(`ϟ [${action}]`);
+      lines.push(`[ϟ ${action}]`);
     }
   }
 
-  // Exit actions (separator + bold Title Case label - matching reference UX)
-  // Action names in square brackets for visual containment
+  // Exit actions: italic label, lightning INSIDE brackets
   if (exit.length > 0) {
     lines.push(`────────`);
-    lines.push(`<b>Exit actions</b>`);
+    lines.push(`<i>Exit actions</i>`);
     for (const action of exit) {
-      lines.push(`ϟ [${action}]`);
+      lines.push(`[ϟ ${action}]`);
     }
   }
 
-  // Invokes (separator + bold Title Case label - matching reference UX)
-  // Using ◉ (fisheye) to match Stately.ai's invoke symbol
-  // Actor names plain (only description is italic)
+  // Invokes: italic label, actor in brackets, Actor ID as subtext
   if (invokes.length > 0) {
     lines.push(`────────`);
-    lines.push(`<b>Invoke</b>`);
+    lines.push(`<i>Invoke</i>`);
     for (const inv of invokes) {
-      lines.push(`◉ ${escapeMermaidText(inv.src)}`);
-      lines.push(`Actor ID∶ ${escapeMermaidText(inv.id)}`);
+      lines.push(`[◉ ${escapeMermaidText(inv.src)}]`);
+      lines.push(`∟ ID∶ ${escapeMermaidText(inv.id)}`);
     }
   }
 

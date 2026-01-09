@@ -100,8 +100,8 @@ const output = toMermaid(comprehensiveMachine, { title: "Field Coverage Test" })
 const checks: { field: string; pattern: RegExp; description: string }[] = [
   {
     field: "description",
-    pattern: /<i>FIELD_DESCRIPTION_CHECK<\/i>/,
-    description: "State description text (italic for contrast)",
+    pattern: /FIELD_DESCRIPTION_CHECK/,
+    description: "State description (plain text)",
   },
   {
     field: "tags",
@@ -115,18 +115,18 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "entry",
-    pattern: /Entry actions.*ϟ \[onEnter\]/s,
-    description: "Entry actions section with bracketed action name",
+    pattern: /<i>Entry actions<\/i>.*\[ϟ onEnter\]/s,
+    description: "Entry actions: italic label, lightning inside brackets",
   },
   {
     field: "exit",
-    pattern: /Exit actions.*ϟ \[onExit\]/s,
-    description: "Exit actions section with bracketed action name",
+    pattern: /<i>Exit actions<\/i>.*\[ϟ onExit\]/s,
+    description: "Exit actions: italic label, lightning inside brackets",
   },
   {
     field: "invoke",
-    pattern: /Invoke.*◉ someService.*Actor ID∶ FIELD_INVOKE_CHECK/s,
-    description: "Invoke actors section with plain actor names",
+    pattern: /<i>Invoke<\/i>.*\[◉ someService\].*∟ ID∶ FIELD_INVOKE_CHECK/s,
+    description: "Invoke: italic label, actor in brackets, ID as subtext",
   },
   {
     field: "on (transitions)",
@@ -140,8 +140,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "on (actions)",
-    pattern: /ϟ \[transitionAction\]/,
-    description: "Actions on transitions with bracketed name",
+    pattern: /\[ϟ transitionAction\]/,
+    description: "Actions on transitions: lightning inside brackets",
   },
   {
     field: "after",
