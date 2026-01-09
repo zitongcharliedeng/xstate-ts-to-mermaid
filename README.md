@@ -144,6 +144,20 @@ stateDiagram-v2
 
 ## Stately.ai Visual Parity
 
+### Reference: Stately.ai Editor
+
+<img src="docs/stately-ai-reference.png" alt="Stately.ai editor screenshot" width="500"/>
+
+### This Library's Output
+
+See the [Mermaid diagram above](#usage) - rendered from the same XState machine definition.
+
+**Key visual elements preserved:**
+- Each tag as a separate item (like Stately's pill/chip styling)
+- Bold state names
+- Separated action sections
+- Guard conditions on transitions
+
 This library renders all official XState v5 state node fields:
 
 - **`description`** - State description text
