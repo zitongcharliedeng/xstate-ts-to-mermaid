@@ -1,6 +1,6 @@
 # xstate-to-mermaid
 
-Convert XState v5 state machines to Mermaid stateDiagram-v2 format.
+Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format.
 
 ## Why?
 
@@ -18,34 +18,59 @@ npm install xstate-to-mermaid
 import { setup } from "xstate";
 import { toMermaid } from "xstate-to-mermaid";
 
-const machine = setup({
+const containerMachine = setup({
   types: {
-    events: {} as { type: "start" } | { type: "stop" },
+    events: {} as
+      | { type: "start" }
+      | { type: "restart_policy" }
+      | { type: "health_pass" }
+      | { type: "health_fail" }
+      | { type: "manual_restart" },
   },
 }).createMachine({
-  id: "toggle",
-  initial: "inactive",
+  id: "container",
+  initial: "stopped",
   states: {
-    inactive: {
-      on: { start: "active" },
+    stopped: {
+      on: {
+        start: { target: "starting" },
+        restart_policy: { target: "starting" },
+      },
     },
-    active: {
-      on: { stop: "inactive" },
+    starting: {
+      on: { health_pass: { target: "healthy" } },
+      after: { 30000: { target: "failed" } },
+    },
+    healthy: {
+      on: { health_fail: { target: "unhealthy" } },
+    },
+    unhealthy: {
+      on: { health_pass: { target: "healthy" } },
+      after: { 30000: { target: "stopped" } },
+    },
+    failed: {
+      on: { manual_restart: { target: "starting" } },
     },
   },
 });
 
-console.log(toMermaid(machine, { title: "Toggle Machine" }));
+console.log(toMermaid(containerMachine, { title: "Container Actor" }));
 ```
 
 Output:
 
 ```mermaid
 stateDiagram-v2
-    %% Toggle Machine
-    [*] --> inactive
-    inactive --> active: start
-    active --> inactive: stop
+    %% Container Actor
+    [*] --> stopped
+    stopped --> starting: start
+    stopped --> starting: restart_policy
+    starting --> healthy: health_pass
+    starting --> failed: after 30s
+    healthy --> unhealthy: health_fail
+    unhealthy --> healthy: health_pass
+    unhealthy --> stopped: after 30s
+    failed --> starting: manual_restart
 ```
 
 ## API
@@ -68,7 +93,7 @@ interface MermaidOptions {
 
 ## Features
 
-- XState v5 compatible
+- XState v5 TypeScript compatible
 - Handles nested/compound states
 - Formats timeout events (`xstate.after.60000...` -> `after 60s`)
 - Extracts clean state names from dotted paths
