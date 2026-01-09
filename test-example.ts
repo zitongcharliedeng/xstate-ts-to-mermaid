@@ -43,7 +43,9 @@ const orderMachine = setup({
       },
     },
     validating: {
-      description: "INVARIANT: stock reserved, payment not charged",
+      meta: {
+        invariants: ["stock_reserved", "payment_not_charged"],
+      },
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -61,7 +63,10 @@ const orderMachine = setup({
       },
     },
     completed: {
-      description: "Order fulfilled. INVARIANT: payment charged, stock shipped",
+      description: "Order fulfilled",
+      meta: {
+        invariants: ["payment_charged", "stock_shipped"],
+      },
       entry: [{ type: "chargeCard" }],
     },
     failed: {

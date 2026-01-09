@@ -18,7 +18,7 @@ npm install xstate-ts-to-mermaid
 import { setup } from "xstate";
 import { toMermaid } from "xstate-ts-to-mermaid";
 
-// Comprehensive example showing ALL supported XState fields
+// Comprehensive example showing ALL supported XState fields including meta.invariants
 const orderMachine = setup({
   types: {
     events: {} as
@@ -56,7 +56,9 @@ const orderMachine = setup({
       },
     },
     validating: {
-      description: "INVARIANT: stock reserved, payment not charged",
+      meta: {
+        invariants: ["stock_reserved", "payment_not_charged"],
+      },
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -74,7 +76,10 @@ const orderMachine = setup({
       },
     },
     completed: {
-      description: "Order fulfilled. INVARIANT: payment charged, stock shipped",
+      description: "Order fulfilled",
+      meta: {
+        invariants: ["payment_charged", "stock_shipped"],
+      },
       entry: [{ type: "chargeCard" }],
     },
     failed: {
@@ -104,14 +109,14 @@ stateDiagram-v2
     [*] --> idle
     idle: <b>idle</b><br/>Waiting for order submission
     idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
-    validating: <b>validating</b><br/>INVARIANT - stock reserved, payment not charged<br/><br/>Entry actions<br/>⚡ notifyUser
+    validating: <b>validating</b><br/>🔒 stock_reserved<br/>🔒 payment_not_charged<br/><i>Entry actions</i><br/>⚡ notifyUser
     validating --> cancelled: CANCEL<br/>⚡ releaseStock
     validating --> processing: after 5000ms
-    processing: <b>processing</b><br/>Processing payment<br/><br/>Invoke<br/>◉ paymentProcessor<br/>Actor ID - payment
+    processing: <b>processing</b><br/>Processing payment<br/><i>Invoke</i><br/>◉ paymentProcessor<br/>Actor ID - payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: <b>completed</b><br/>Order fulfilled. INVARIANT - payment charged, stock shipped<br/><br/>Entry actions<br/>⚡ chargeCard
-    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/><br/>Entry actions<br/>⚡ releaseStock
+    completed: <b>completed</b><br/>Order fulfilled<br/>🔒 payment_charged<br/>🔒 stock_shipped<br/><i>Entry actions</i><br/>⚡ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/><i>Entry actions</i><br/>⚡ releaseStock
     failed --> processing: RETRY IF hasValidPayment
     cancelled: <b>cancelled</b><br/>Order cancelled by user
 ```
@@ -124,13 +129,34 @@ Here is the stately.ai web render for the same Typescript Source of Truth (sorry
 
 This library aims to match Stately.ai's visual formatting:
 
-- **Bold state headers**: `<b>idle</b>` renders state name prominently
-- **Line breaks**: `<br/>` separates header, description, and metadata
-- **Entry actions with ⚡**: `Entry actions` section with lightning emoji
-- **Invoke actors with ◉**: `Invoke` section with actor details
-- **Guards with IF**: `SUBMIT IF stockAvailable` (Stately.ai format)
-- **Transition actions with ⚡**: Actions on separate line with emoji
-- **Timeout transitions**: `after 5000ms` (raw milliseconds)
+- **`<b>` Bold state headers**: State name rendered prominently
+- **`<br/>` Line breaks**: Proper separation between elements
+- **`<i>` Italic subheadings**: "Entry actions" and "Invoke" labels
+- **🔒 Invariants**: `meta.invariants` rendered with lock emoji
+- **⚡ Actions**: Entry and transition actions with lightning emoji
+- **◉ Invoke actors**: Actor source and ID
+- **IF guards**: `SUBMIT IF stockAvailable` format
+
+## Invariants via `meta.invariants`
+
+XState doesn't have a built-in invariant field. Use `meta.invariants` array:
+
+```typescript
+states: {
+  healthy: {
+    meta: {
+      invariants: ["all_containers_running", "memory_writable"],
+    },
+    description: "System operational",
+  },
+}
+```
+
+Renders as:
+```
+🔒 all_containers_running
+🔒 memory_writable
+```
 
 ## API
 
@@ -152,6 +178,7 @@ interface MermaidOptions {
   includeActions?: boolean; // Show transition actions (default: true)
   includeEntryActions?: boolean; // Show entry actions on states (default: true)
   includeInvokes?: boolean; // Show invoke actors on states (default: true)
+  includeInvariants?: boolean; // Show meta.invariants on states (default: true)
 }
 ```
 
@@ -164,6 +191,7 @@ import {
   getDescription,
   getEntryActions,
   getInvokes,
+  getInvariants,
   formatTransitionLabel,
 } from "xstate-ts-to-mermaid";
 
@@ -175,12 +203,13 @@ formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 
 - XState v5 TypeScript compatible
 - **Stately.ai visual parity** - matches the official editor's formatting
-- Bold state name headers with `<b>` tags
-- Proper line breaks with `<br/>` (not literal `\n`)
-- Entry actions section with ⚡ emoji
-- Invoke section with ◉ and actor details
-- Guards displayed as `IF guardName`
-- Transition actions with ⚡ emoji on separate line
+- `<b>` bold state name headers
+- `<i>` italic section labels (Entry actions, Invoke)
+- `<br/>` proper line breaks
+- 🔒 `meta.invariants` support with lock emoji
+- ⚡ entry and transition actions with lightning emoji
+- ◉ invoke actors with source and ID
+- IF format for guards
 - Handles nested/compound states
 - Formats timeout events with raw milliseconds
 - Zero information loss - all metadata from XState is preserved

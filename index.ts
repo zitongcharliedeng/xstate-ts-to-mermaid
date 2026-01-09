@@ -24,6 +24,8 @@ export interface MermaidOptions {
   includeEntryActions?: boolean;
   /** Include invoke actors in state descriptions. Default: true */
   includeInvokes?: boolean;
+  /** Include meta.invariants in state descriptions. Default: true */
+  includeInvariants?: boolean;
 }
 
 /**
@@ -86,6 +88,15 @@ export function getInvokes(node: DirectedGraphNode): Array<{ src: string; id: st
 }
 
 /**
+ * Get invariants from state node's meta field
+ */
+export function getInvariants(node: DirectedGraphNode): string[] {
+  const stateNode = node.stateNode as unknown as Record<string, unknown>;
+  const meta = stateNode?.meta as { invariants?: string[] } | undefined;
+  return meta?.invariants || [];
+}
+
+/**
  * Format a transition label with event, guard, and actions
  * Stately.ai format: "EVENT IF guard" with "⚡ action" below
  */
@@ -115,39 +126,48 @@ export function formatTransitionLabel(
 
 /**
  * Build state label with Stately.ai-style formatting:
- * - State name as header (bold via <b> if supported, otherwise just prominent)
- * - Description on next line
- * - Entry actions section with ⚡ emoji
- * - Invoke section with actor info
+ * - State name as bold header
+ * - Description below
+ * - Invariants with 🔒 prefix
+ * - Entry actions section with italic label
+ * - Invoke section with italic label
  */
 function buildStateLabel(
   name: string,
   desc: string | undefined,
+  invariants: string[],
   entry: string[],
   invokes: Array<{ src: string; id: string }>,
   maxLen: number
 ): string {
   const lines: string[] = [];
 
-  // State name as header
+  // State name as bold header
   lines.push(`<b>${name}</b>`);
 
-  // Description
+  // Description (regular text)
   if (desc) {
     lines.push(desc);
   }
 
-  // Entry actions (Stately.ai style with ⚡)
+  // Invariants with lock emoji (distinct from description)
+  if (invariants.length > 0) {
+    for (const inv of invariants) {
+      lines.push(`🔒 ${inv}`);
+    }
+  }
+
+  // Entry actions (italic subheading label, Stately.ai style)
   if (entry.length > 0) {
-    lines.push(`<br/>Entry actions`);
+    lines.push(`<i>Entry actions</i>`);
     for (const action of entry) {
       lines.push(`⚡ ${action}`);
     }
   }
 
-  // Invokes (Stately.ai style)
+  // Invokes (italic subheading label, Stately.ai style)
   if (invokes.length > 0) {
-    lines.push(`<br/>Invoke`);
+    lines.push(`<i>Invoke</i>`);
     for (const inv of invokes) {
       lines.push(`◉ ${inv.src}`);
       lines.push(`Actor ID - ${inv.id}`);
@@ -188,19 +208,21 @@ export function toMermaid(
 
   const includeEntry = options.includeEntryActions ?? true;
   const includeInvoke = options.includeInvokes ?? true;
+  const includeInvariants = options.includeInvariants ?? true;
 
   function collectAll(node: DirectedGraphNode): void {
     const name = getStateName(node.id);
     const desc = getDescription(node);
     const entry = includeEntry ? getEntryActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
+    const invariants = includeInvariants ? getInvariants(node) : [];
 
     if (!seenStates.has(name)) {
       seenStates.add(name);
 
-      const hasContent = desc || entry.length > 0 || invokes.length > 0;
+      const hasContent = desc || invariants.length > 0 || entry.length > 0 || invokes.length > 0;
       if (hasContent) {
-        const label = buildStateLabel(name, desc, entry, invokes, maxLen);
+        const label = buildStateLabel(name, desc, invariants, entry, invokes, maxLen);
         lines.push(`    ${name}: ${label}`);
       } else {
         lines.push(`    ${name}: ${name}`);
@@ -254,6 +276,7 @@ export function toMermaidNested(
   const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
   const includeEntry = options.includeEntryActions ?? true;
   const includeInvoke = options.includeInvokes ?? true;
+  const includeInvariants = options.includeInvariants ?? true;
 
   lines.push("stateDiagram-v2");
   if (options.title) {
@@ -267,6 +290,7 @@ export function toMermaidNested(
     const desc = getDescription(node);
     const entry = includeEntry ? getEntryActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
+    const invariants = includeInvariants ? getInvariants(node) : [];
     const stateNode = node.stateNode as unknown as Record<string, unknown>;
 
     if (hasChildren) {
@@ -299,9 +323,9 @@ export function toMermaidNested(
         lines.push(`${pad}note right of ${name}: ${text}`);
       }
     } else {
-      const hasContent = desc || entry.length > 0 || invokes.length > 0;
+      const hasContent = desc || invariants.length > 0 || entry.length > 0 || invokes.length > 0;
       if (hasContent) {
-        const label = buildStateLabel(name, desc, entry, invokes, maxLen);
+        const label = buildStateLabel(name, desc, invariants, entry, invokes, maxLen);
         lines.push(`${pad}${name}: ${label}`);
       } else {
         lines.push(`${pad}${name}: ${name}`);
