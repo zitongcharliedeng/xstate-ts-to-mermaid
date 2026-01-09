@@ -24,8 +24,10 @@ export interface MermaidOptions {
   includeEntryActions?: boolean;
   /** Include invoke actors in state descriptions. Default: true */
   includeInvokes?: boolean;
-  /** Include meta.invariants in state descriptions. Default: true */
-  includeInvariants?: boolean;
+  /** Include tags in state descriptions. Default: true */
+  includeTags?: boolean;
+  /** Include meta in state descriptions. Default: true */
+  includeMeta?: boolean;
 }
 
 /**
@@ -88,12 +90,20 @@ export function getInvokes(node: DirectedGraphNode): Array<{ src: string; id: st
 }
 
 /**
- * Get invariants from state node's meta field
+ * Get tags from state node
  */
-export function getInvariants(node: DirectedGraphNode): string[] {
+export function getTags(node: DirectedGraphNode): string[] {
   const stateNode = node.stateNode as unknown as Record<string, unknown>;
-  const meta = stateNode?.meta as { invariants?: string[] } | undefined;
-  return meta?.invariants || [];
+  const tags = stateNode?.tags as string[] | undefined;
+  return tags || [];
+}
+
+/**
+ * Get meta from state node (generic key-value object)
+ */
+export function getMeta(node: DirectedGraphNode): Record<string, unknown> | undefined {
+  const stateNode = node.stateNode as unknown as Record<string, unknown>;
+  return stateNode?.meta as Record<string, unknown> | undefined;
 }
 
 /**
@@ -125,17 +135,36 @@ export function formatTransitionLabel(
 }
 
 /**
+ * Format meta object as key-value lines
+ */
+function formatMeta(meta: Record<string, unknown>): string[] {
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(meta)) {
+    if (Array.isArray(value)) {
+      lines.push(`${key} - ${value.join(', ')}`);
+    } else if (typeof value === 'object' && value !== null) {
+      lines.push(`${key} - ${JSON.stringify(value)}`);
+    } else {
+      lines.push(`${key} - ${String(value)}`);
+    }
+  }
+  return lines;
+}
+
+/**
  * Build state label with Stately.ai-style formatting:
  * - State name as bold header
  * - Description below
- * - Invariants with 🔒 prefix
+ * - Tags with 🏷️ prefix
+ * - Meta as key-value pairs
  * - Entry actions section with separator + bold italic label
  * - Invoke section with separator + bold italic label
  */
 function buildStateLabel(
   name: string,
   desc: string | undefined,
-  invariants: string[],
+  tags: string[],
+  meta: Record<string, unknown> | undefined,
   entry: string[],
   invokes: Array<{ src: string; id: string }>,
   maxLen: number
@@ -150,10 +179,16 @@ function buildStateLabel(
     lines.push(desc);
   }
 
-  // Invariants with lock emoji (distinct from description)
-  if (invariants.length > 0) {
-    for (const inv of invariants) {
-      lines.push(`🔒 ${inv}`);
+  // Tags with tag emoji
+  if (tags.length > 0) {
+    lines.push(`🏷️ ${tags.join(', ')}`);
+  }
+
+  // Meta as generic key-value pairs
+  if (meta && Object.keys(meta).length > 0) {
+    const metaLines = formatMeta(meta);
+    for (const line of metaLines) {
+      lines.push(line);
     }
   }
 
@@ -210,21 +245,23 @@ export function toMermaid(
 
   const includeEntry = options.includeEntryActions ?? true;
   const includeInvoke = options.includeInvokes ?? true;
-  const includeInvariants = options.includeInvariants ?? true;
+  const includeTagsOpt = options.includeTags ?? true;
+  const includeMetaOpt = options.includeMeta ?? true;
 
   function collectAll(node: DirectedGraphNode): void {
     const name = getStateName(node.id);
     const desc = getDescription(node);
     const entry = includeEntry ? getEntryActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
-    const invariants = includeInvariants ? getInvariants(node) : [];
+    const tags = includeTagsOpt ? getTags(node) : [];
+    const meta = includeMetaOpt ? getMeta(node) : undefined;
 
     if (!seenStates.has(name)) {
       seenStates.add(name);
 
-      const hasContent = desc || invariants.length > 0 || entry.length > 0 || invokes.length > 0;
+      const hasContent = desc || tags.length > 0 || (meta && Object.keys(meta).length > 0) || entry.length > 0 || invokes.length > 0;
       if (hasContent) {
-        const label = buildStateLabel(name, desc, invariants, entry, invokes, maxLen);
+        const label = buildStateLabel(name, desc, tags, meta, entry, invokes, maxLen);
         lines.push(`    ${name}: ${label}`);
       } else {
         lines.push(`    ${name}: ${name}`);
@@ -278,7 +315,8 @@ export function toMermaidNested(
   const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
   const includeEntry = options.includeEntryActions ?? true;
   const includeInvoke = options.includeInvokes ?? true;
-  const includeInvariants = options.includeInvariants ?? true;
+  const includeTagsOpt = options.includeTags ?? true;
+  const includeMetaOpt = options.includeMeta ?? true;
 
   lines.push("stateDiagram-v2");
   if (options.title) {
@@ -292,7 +330,8 @@ export function toMermaidNested(
     const desc = getDescription(node);
     const entry = includeEntry ? getEntryActions(node) : [];
     const invokes = includeInvoke ? getInvokes(node) : [];
-    const invariants = includeInvariants ? getInvariants(node) : [];
+    const tags = includeTagsOpt ? getTags(node) : [];
+    const meta = includeMetaOpt ? getMeta(node) : undefined;
     const stateNode = node.stateNode as unknown as Record<string, unknown>;
 
     if (hasChildren) {
@@ -325,9 +364,9 @@ export function toMermaidNested(
         lines.push(`${pad}note right of ${name}: ${text}`);
       }
     } else {
-      const hasContent = desc || invariants.length > 0 || entry.length > 0 || invokes.length > 0;
+      const hasContent = desc || tags.length > 0 || (meta && Object.keys(meta).length > 0) || entry.length > 0 || invokes.length > 0;
       if (hasContent) {
-        const label = buildStateLabel(name, desc, invariants, entry, invokes, maxLen);
+        const label = buildStateLabel(name, desc, tags, meta, entry, invokes, maxLen);
         lines.push(`${pad}${name}: ${label}`);
       } else {
         lines.push(`${pad}${name}: ${name}`);
