@@ -18,52 +18,111 @@ npm install xstate-ts-to-mermaid
 import { setup } from "xstate";
 import { toMermaid } from "xstate-ts-to-mermaid";
 
-const trafficLightMachine = setup({
+// Comprehensive example showing ALL supported XState fields
+const orderMachine = setup({
   types: {
-    events: {} as { type: "TIMER" } | { type: "EMERGENCY" },
+    events: {} as
+      | { type: "SUBMIT" }
+      | { type: "CANCEL" }
+      | { type: "PAYMENT_SUCCESS" }
+      | { type: "PAYMENT_FAILED" }
+      | { type: "RETRY" },
+  },
+  guards: {
+    hasValidPayment: () => true,
+    stockAvailable: () => true,
+  },
+  actions: {
+    notifyUser: () => {},
+    reserveStock: () => {},
+    chargeCard: () => {},
+    releaseStock: () => {},
+  },
+  actors: {
+    paymentProcessor: {} as any,
   },
 }).createMachine({
-  id: "trafficLight",
-  initial: "green",
+  id: "order",
+  initial: "idle",
   states: {
-    green: {
-      description: "Cars may proceed",
-      on: { TIMER: "yellow" },
-      after: { 30000: "yellow" },
+    idle: {
+      description: "Waiting for order submission",
+      on: {
+        SUBMIT: {
+          target: "validating",
+          guard: { type: "stockAvailable" },
+          actions: [{ type: "reserveStock" }],
+        },
+      },
     },
-    yellow: {
-      description: "Prepare to stop",
-      on: { TIMER: "red" },
-      after: { 5000: "red" },
+    validating: {
+      description: "INVARIANT: stock reserved, payment not charged",
+      entry: [{ type: "notifyUser" }],
+      on: {
+        CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
+      },
+      after: {
+        5000: { target: "processing" },
+      },
     },
-    red: {
-      description: "Cars must stop",
-      on: { TIMER: "green", EMERGENCY: "yellow" },
-      after: { 30000: "green" },
+    processing: {
+      description: "Processing payment",
+      invoke: [{ src: "paymentProcessor", id: "payment" }],
+      on: {
+        PAYMENT_SUCCESS: { target: "completed" },
+        PAYMENT_FAILED: { target: "failed" },
+      },
+    },
+    completed: {
+      description: "Order fulfilled. INVARIANT: payment charged, stock shipped",
+      entry: [{ type: "chargeCard" }],
+    },
+    failed: {
+      description: "Payment failed. Manual retry available.",
+      entry: [{ type: "releaseStock" }],
+      on: {
+        RETRY: {
+          target: "processing",
+          guard: { type: "hasValidPayment" },
+        },
+      },
+    },
+    cancelled: {
+      description: "Order cancelled by user",
     },
   },
 });
 
-console.log(toMermaid(trafficLightMachine, { title: "Traffic Light" }));
+console.log(toMermaid(orderMachine, { title: "Order Processing" }));
 ```
 
-Output:
+Output (actual generated output, not manually written):
 
 ```mermaid
 stateDiagram-v2
-    %% Traffic Light
-    [*] --> green
-    green: Cars may proceed
-    yellow: Prepare to stop
-    red: Cars must stop
-    green --> yellow: TIMER
-    green --> yellow: after 30s
-    yellow --> red: TIMER
-    yellow --> red: after 5s
-    red --> green: TIMER
-    red --> yellow: EMERGENCY
-    red --> green: after 30s
+    %% Order Processing
+    [*] --> idle
+    idle: Waiting for order submission
+    idle --> validating: SUBMIT [stockAvailable] / reserveStock
+    validating: INVARIANT - stock reserved, payment not charged | entry - notifyUser
+    validating --> cancelled: CANCEL / releaseStock
+    validating --> processing: after 5000ms
+    processing: Processing payment | invoke - paymentProcessor(payment)
+    processing --> completed: PAYMENT_SUCCESS
+    processing --> failed: PAYMENT_FAILED
+    completed: Order fulfilled. INVARIANT - payment charged, stock shipped | entry - chargeCard
+    failed: Payment failed. Manual retry available. | entry - releaseStock
+    failed --> processing: RETRY [hasValidPayment]
+    cancelled: Order cancelled by user
 ```
+
+This example demonstrates ALL supported fields:
+- **State descriptions**: `idle: Waiting for order submission`
+- **Transition guards**: `SUBMIT [stockAvailable]`
+- **Transition actions**: `SUBMIT [stockAvailable] / reserveStock`
+- **Entry actions**: `validating: ... | entry - notifyUser`
+- **Invoke actors**: `processing: ... | invoke - paymentProcessor(payment)`
+- **Timeout transitions**: `after 5000ms` (raw milliseconds, matching Stately.ai format)
 
 ## API
 
@@ -101,7 +160,7 @@ import {
 } from "xstate-ts-to-mermaid";
 
 getStateName("machine.parent.child"); // "child"
-formatEventName("xstate.after.60000.machine..."); // "after 60s"
+formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 ```
 
 ## Features
@@ -110,10 +169,10 @@ formatEventName("xstate.after.60000.machine..."); // "after 60s"
 - Preserves state descriptions as labels
 - **Guards**: Shows guards on transitions as `event [guardName]`
 - **Transition actions**: Shows actions as `event / action1, action2`
-- **Entry actions**: Shows entry actions as `state: entry: action1, action2`
-- **Invoke actors**: Shows invoked actors as `state: invoke: machine(id)`
+- **Entry actions**: Shows entry actions as `state: ... | entry - action1, action2`
+- **Invoke actors**: Shows invoked actors as `state: ... | invoke - machine(id)`
 - Handles nested/compound states
-- Formats timeout events (`xstate.after.60000...` -> `after 60s`)
+- Formats timeout events with raw milliseconds (`after 60000ms`)
 - Extracts clean state names from dotted paths
 - Zero information loss - all metadata from XState is preserved
 

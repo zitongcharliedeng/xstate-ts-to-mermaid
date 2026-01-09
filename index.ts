@@ -35,19 +35,26 @@ export function getStateName(id: string): string {
 }
 
 /**
- * Format XState internal event names to human-readable
- * "xstate.after.60000.machine..." -> "after 60s"
+ * Format XState internal event names
+ * "xstate.after.60000.machine..." -> "after 60000ms"
+ * Keeps raw milliseconds for parity with Stately.ai
  */
 export function formatEventName(event: string): string {
   if (event.startsWith("xstate.after.")) {
     const match = event.match(/xstate\.after\.(\d+)\./);
     if (match) {
-      const ms = parseInt(match[1]);
-      if (ms >= 60000) return `after ${ms / 60000}m`;
-      return `after ${ms / 1000}s`;
+      return `after ${match[1]}ms`;
     }
   }
   return event;
+}
+
+/**
+ * Escape text for Mermaid state descriptions.
+ * Colons break `stateName: description` syntax, so replace with dash.
+ */
+export function escapeMermaidText(text: string): string {
+  return text.replace(/:/g, ' -');
 }
 
 /**
@@ -55,7 +62,8 @@ export function formatEventName(event: string): string {
  */
 export function getDescription(node: DirectedGraphNode): string | undefined {
   const stateNode = node.stateNode as unknown as Record<string, unknown>;
-  return stateNode?.description as string | undefined;
+  const desc = stateNode?.description as string | undefined;
+  return desc ? escapeMermaidText(desc) : undefined;
 }
 
 /**
@@ -141,8 +149,8 @@ export function toMermaid(
     if (!seenStates.has(name)) {
       const parts: string[] = [];
       if (desc) parts.push(desc);
-      if (entry.length > 0) parts.push(`entry: ${entry.join(', ')}`);
-      if (invokes.length > 0) parts.push(`invoke: ${invokes.map(i => `${i.src}(${i.id})`).join(', ')}`);
+      if (entry.length > 0) parts.push(`entry - ${entry.join(', ')}`);
+      if (invokes.length > 0) parts.push(`invoke - ${invokes.map(i => `${i.src}(${i.id})`).join(', ')}`);
 
       if (parts.length > 0) {
         seenStates.add(name);
