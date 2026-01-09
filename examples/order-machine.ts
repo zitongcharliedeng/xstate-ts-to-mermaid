@@ -7,7 +7,7 @@
  * - description, tags, meta, entry, exit, invoke, on, after
  */
 import { setup } from "xstate";
-import { toMermaid } from "./index.js";
+import { toMermaid } from "../index.js";
 
 const orderMachine = setup({
   types: {
@@ -40,7 +40,11 @@ const orderMachine = setup({
     cleanupResources: () => {},
   },
   actors: {
-    paymentProcessor: {} as any,
+    // XState actors require proper implementations (Promise/Callback/Observable creators).
+    // For examples demonstrating machine structure, we use `as any` stubs.
+    // This is the recommended pattern from Stately.ai for documentation examples.
+    // See: https://stately.ai/docs/actors#actor-logic-creators
+    paymentProcessor: {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
   },
 }).createMachine({
   id: "order",

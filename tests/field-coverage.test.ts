@@ -31,7 +31,7 @@
  * - target: history default target
  */
 import { setup } from "xstate";
-import { toMermaid } from "./index.js";
+import { toMermaid } from "../index.js";
 
 // Test machine that uses EVERY renderable field
 const comprehensiveMachine = setup({
@@ -51,7 +51,9 @@ const comprehensiveMachine = setup({
     transitionAction: () => {},
   },
   actors: {
-    someService: {} as any,
+    // Actor stub: XState requires proper actor implementations, but for testing
+    // machine structure we use `as any`. This is standard for XState examples.
+    someService: {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
   },
 }).createMachine({
   id: "comprehensive",

@@ -2,9 +2,42 @@
 
 Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format with Stately.ai visual parity.
 
+## Visual Parity with Stately.ai
+
+<table>
+<tr>
+<th>Stately.ai Editor (Reference)</th>
+<th>This Library (Mermaid Output)</th>
+<th>Legend</th>
+</tr>
+<tr>
+<td valign="top"><img src=".github/assets/stately-ai-reference.png" alt="Stately.ai editor" width="350"/></td>
+<td valign="top"><img src=".github/assets/library-output.png" alt="Library mermaid output" width="350"/></td>
+<td valign="top">
+
+| Symbol | Meaning |
+|--------|---------|
+| `[tag]` | Tags (pill-like) |
+| 🔒 | State [invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) |
+| ⚡ | Action |
+| ◉ | Invoked actor |
+| `IF` | Guard condition |
+| `───` | Section separator |
+
+</td>
+</tr>
+</table>
+
+**Visual elements preserved:**
+- Bracketed tags for pill-like styling
+- Bold state names with `<b>` tags
+- Entry/exit action sections with separators
+- Guard conditions on transitions (`IF guardName`)
+- Invoke actors with source and ID
+
 ## Why?
 
-XState v5 has no built-in Mermaid export. The official recommendation from David Piano is to use `@xstate/graph`'s `toDirectedGraph()` and write your own converter. This is an example converter that aims for visual parity with Stately.ai's editor, unlike the simplified Mermaid export Stately.ai currently provides.
+XState v5 has no built-in Mermaid export. The official recommendation from David Piano is to use `@xstate/graph`'s `toDirectedGraph()` and write your own converter. This library provides visual parity with Stately.ai's editor, unlike the simplified Mermaid export Stately.ai currently provides.
 
 ## Installation
 
@@ -14,12 +47,14 @@ npm install xstate-ts-to-mermaid
 
 ## Usage
 
+### Machine Definition (Source of Truth)
+
+This TypeScript machine definition demonstrates ALL supported XState v5 fields. The same definition is used for testing and documentation generation.
+
 ```typescript
 import { setup } from "xstate";
 import { toMermaid } from "xstate-ts-to-mermaid";
 
-// Example showcasing ALL supported XState v5 fields:
-// description, tags, entry, exit, invoke, on, after
 const orderMachine = setup({
   types: {
     events: {} as
@@ -51,6 +86,7 @@ const orderMachine = setup({
     cleanupResources: () => {},
   },
   actors: {
+    // XState actor stubs require `as any` - this is intentional for examples
     paymentProcessor: {} as any,
   },
 }).createMachine({
@@ -110,8 +146,10 @@ const orderMachine = setup({
   },
 });
 
-console.log(toMermaid(orderMachine, { title: "Order Processing" }));
+console.log(toMermaid(orderMachine));
 ```
+
+### Generated Output
 
 Output (actual generated output, not manually written):
 
@@ -130,73 +168,6 @@ stateDiagram-v2
     failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>[error] [🔒 stock_released]<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
     failed --> processing: RETRY IF hasValidPayment
     cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ logCancellation<br/>───────────<br/><b><i>Exit actions</i></b><br/>⚡ cleanupResources
-```
-
-## Stately.ai Visual Parity
-
-<table>
-<tr>
-<th>Stately.ai Editor (Reference)</th>
-<th>This Library (Mermaid Output)</th>
-<th>Legend</th>
-</tr>
-<tr>
-<td valign="top"><img src="docs/stately-ai-reference.png" alt="Stately.ai editor" width="350"/></td>
-<td valign="top"><img src="docs/library-output.png" alt="Library mermaid output" width="350"/></td>
-<td valign="top">
-
-| Symbol | Meaning |
-|--------|---------|
-| `[tag]` | Tags (pill-like) |
-| 🔒 | State [invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) |
-| ⚡ | Action |
-| ◉ | Invoked actor |
-| `IF` | Guard condition |
-| `───` | Section separator |
-
-</td>
-</tr>
-</table>
-
-**Visual elements preserved:**
-- Bracketed tags for pill-like styling
-- Bold state names with `<b>` tags
-- Entry/exit action sections with separators
-- Guard conditions on transitions (`IF guardName`)
-- Invoke actors with source and ID
-
-This library renders all official XState v5 state node fields:
-
-- **`description`** - State description text
-- **`tags`** - Array of tags in brackets (tags can contain any string including emojis)
-- **`meta`** - Generic key-value metadata (rendered with *italicized* keys)
-- **`entry`** - Entry actions with ⚡ prefix
-- **`exit`** - Exit actions with ⚡ prefix
-- **`invoke`** - Invoked actors with ◉ prefix
-- **`on`** / **`after`** - Transitions with guards (IF format) and actions
-
-Visual formatting:
-- **`<b>` Bold state headers**: State name rendered prominently
-- **`<br/>` Line breaks**: Proper separation between elements
-- **`───────────` Horizontal separators**: Visual distinction between content and action sections
-- **`<b><i>` Bold+italic section headers**: "Entry actions", "Exit actions", "Invoke" labels
-
-## Important: `meta` vs `tags`
-
-**Warning:** The `meta` field is valid XState v5, but **Stately.ai's visual editor has no UI for it**. When you import a machine with `meta` into Stately.ai and export it, the `meta` field gets cleansed/dropped.
-
-**Recommendation:** Use `tags` instead of `meta` - tags survive Stately.ai round-trips.
-
-```typescript
-// RECOMMENDED - survives Stately.ai import/export
-validating: {
-  tags: ["loading", "stock_reserved"],
-}
-
-// WORKS but gets cleansed by Stately.ai visual editor
-validating: {
-  meta: { category: "processing" },
-}
 ```
 
 ## Supported XState Fields
@@ -228,13 +199,13 @@ Preserves hierarchy using Mermaid's `state {}` syntax for compound states.
 interface MermaidOptions {
   title?: string;
   maxDescriptionLength?: number; // 0 = no limit (default)
-  includeGuards?: boolean; // Show guards on transitions (default: true)
-  includeActions?: boolean; // Show transition actions (default: true)
-  includeEntryActions?: boolean; // Show entry actions on states (default: true)
-  includeExitActions?: boolean; // Show exit actions on states (default: true)
-  includeInvokes?: boolean; // Show invoke actors on states (default: true)
-  includeTags?: boolean; // Show tags on states (default: true)
-  includeMeta?: boolean; // Show meta on states (default: true)
+  includeGuards?: boolean;       // default: true
+  includeActions?: boolean;      // default: true
+  includeEntryActions?: boolean; // default: true
+  includeExitActions?: boolean;  // default: true
+  includeInvokes?: boolean;      // default: true
+  includeTags?: boolean;         // default: true
+  includeMeta?: boolean;         // default: true
 }
 ```
 
@@ -257,32 +228,32 @@ getStateName("machine.parent.child"); // "child"
 formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 ```
 
-## Testing
+## Important: `meta` vs `tags`
 
-Run the field coverage test to verify all XState fields are captured:
+**Warning:** The `meta` field is valid XState v5, but **Stately.ai's visual editor has no UI for it**. When you import a machine with `meta` into Stately.ai and export it, the `meta` field gets cleansed/dropped.
+
+**Recommendation:** Use `tags` instead of `meta` - tags survive Stately.ai round-trips.
+
+## Development
 
 ```bash
-npx tsx field-coverage.test.ts
+npm test           # Run all tests
+npm run build      # Build library
 ```
 
-This deterministically checks that every renderable XState v5 field is present in the output.
+### Project Structure
 
-## Features
-
-- XState v5 TypeScript compatible
-- **Stately.ai visual parity** - renders all official XState state node fields
-- `<b>` bold state name headers
-- `<b><i>` bold+italic section headers (Entry actions, Exit actions, Invoke)
-- `───────────` horizontal separators for visual distinction
-- `<br/>` proper line breaks
-- `[tag]` bracket notation for tags (pill-like styling, supports any string including emojis)
-- `meta` rendered with italicized keys (warning: cleansed by Stately.ai)
-- ⚡ entry, exit, and transition actions
-- ◉ invoke actors with source and ID
-- IF format for guards
-- Handles nested/compound states
-- Formats timeout events with raw milliseconds
-- Zero information loss - all metadata from XState is preserved
+```
+├── index.ts                    # Library source
+├── examples/
+│   └── order-machine.ts        # Example machine (source of truth)
+├── tests/
+│   ├── field-coverage.test.ts  # Verifies all XState fields render
+│   └── readme-sync.test.ts     # Verifies README matches output
+└── .github/
+    ├── assets/                 # Generated comparison images
+    └── workflows/ci.yml        # CI pipeline
+```
 
 ## License
 

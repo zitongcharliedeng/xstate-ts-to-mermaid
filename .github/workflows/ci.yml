@@ -25,7 +25,10 @@ jobs:
         run: npm run build
 
       - name: Run field coverage test
-        run: npx tsx field-coverage.test.ts
+        run: npx tsx tests/field-coverage.test.ts
+
+      - name: Run README sync test
+        run: npx tsx tests/readme-sync.test.ts
 
       - name: Type check
         run: npx tsc --noEmit
@@ -50,21 +53,21 @@ jobs:
         run: npm run build
 
       - name: Generate Mermaid diagram
-        run: npx tsx test-example.ts > diagram.mmd
+        run: npx tsx examples/order-machine.ts > diagram.mmd
 
       - name: Setup Mermaid CLI
         run: npm install -g @mermaid-js/mermaid-cli
 
       - name: Generate PNG
         run: |
-          mkdir -p docs
+          mkdir -p .github/assets
           echo '{"args": ["--no-sandbox", "--disable-setuid-sandbox"]}' > /tmp/puppeteer.json
-          mmdc -i diagram.mmd -o docs/library-output.png -t dark -b transparent -p /tmp/puppeteer.json
+          mmdc -i diagram.mmd -o .github/assets/library-output.png -t dark -b transparent -p /tmp/puppeteer.json
 
       - name: Commit updated diagram if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/library-output.png
+          git add .github/assets/library-output.png
           git diff --staged --quiet || git commit -m "chore: auto-update library-output.png [skip ci]"
           git push || echo "Nothing to push"

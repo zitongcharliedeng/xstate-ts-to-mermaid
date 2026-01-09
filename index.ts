@@ -38,7 +38,8 @@ export interface MermaidOptions {
  */
 export function getStateName(id: string): string {
   const parts = id.split(".");
-  return parts[parts.length - 1];
+  // Array access is always defined for non-empty split result (string.split never returns empty array)
+  return parts[parts.length - 1] ?? id;
 }
 
 /**
@@ -66,8 +67,14 @@ export function escapeMermaidText(text: string): string {
 
 /**
  * Get description from state node
+ *
+ * Type cast explanation: DirectedGraphNode.stateNode is typed as StateNode,
+ * but we need access to runtime properties (description, entry, exit, etc.)
+ * that aren't exposed in the public API. The cast to Record<string, unknown>
+ * is intentional and safe - we validate each property access.
  */
 export function getDescription(node: DirectedGraphNode): string | undefined {
+  // Cast needed: stateNode's internal properties aren't in public XState types
   const stateNode = node.stateNode as unknown as Record<string, unknown>;
   const desc = stateNode?.description as string | undefined;
   return desc ? escapeMermaidText(desc) : undefined;
@@ -255,7 +262,11 @@ export function toMermaid(
   const seenEdges = new Set<string>();
   const seenStates = new Set<string>();
   const maxLen = options.maxDescriptionLength ?? 0;
-  const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
+  // Resolve optional properties to concrete booleans for exactOptionalPropertyTypes compliance
+  const labelOptions = {
+    includeGuards: options.includeGuards ?? true,
+    includeActions: options.includeActions ?? true,
+  };
 
   lines.push("stateDiagram-v2");
   // Note: Mermaid comments (%%) don't render visibly, so no title header
@@ -336,7 +347,11 @@ export function toMermaidNested(
   const lines: string[] = [];
   const processedEdges = new Set<string>();
   const maxLen = options.maxDescriptionLength ?? 0;
-  const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
+  // Resolve optional properties to concrete booleans for exactOptionalPropertyTypes compliance
+  const labelOptions = {
+    includeGuards: options.includeGuards ?? true,
+    includeActions: options.includeActions ?? true,
+  };
   const includeEntry = options.includeEntryActions ?? true;
   const includeExit = options.includeExitActions ?? true;
   const includeInvoke = options.includeInvokes ?? true;
