@@ -100,13 +100,13 @@ const output = toMermaid(comprehensiveMachine, { title: "Field Coverage Test" })
 const checks: { field: string; pattern: RegExp; description: string }[] = [
   {
     field: "description",
-    pattern: /<sup>FIELD_DESCRIPTION_CHECK<\/sup>/,
-    description: "State description (superscript, closer to title)",
+    pattern: /<sup><b>FIELD_DESCRIPTION_CHECK<\/b><\/sup>/,
+    description: "State description (superscript bold, closer to title)",
   },
   {
     field: "tags",
-    pattern: /\(Invariant∶invariant_a\).*\(category\)/s,
-    description: "Tags in parentheses with full Invariant label",
+    pattern: /<sup>\(Invariant∶invariant_a\)<\/sup>.*<sup>\(category\)<\/sup>/s,
+    description: "Tags in superscript parentheses with full Invariant label",
   },
   {
     field: "meta",
@@ -115,18 +115,18 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "entry",
-    pattern: /<i>Entry actions<\/i>.*\[ϟ onEnter\]/s,
-    description: "Entry actions: italic label, lightning inside brackets",
+    pattern: /Entry actions.*<b>\[ϟ onEnter\]<\/b>/s,
+    description: "Entry actions: normal label, bold action with lightning inside brackets",
   },
   {
     field: "exit",
-    pattern: /<i>Exit actions<\/i>.*\[ϟ onExit\]/s,
-    description: "Exit actions: italic label, lightning inside brackets",
+    pattern: /Exit actions.*<b>\[ϟ onExit\]<\/b>/s,
+    description: "Exit actions: normal label, bold action with lightning inside brackets",
   },
   {
     field: "invoke",
-    pattern: /<i>Invoke<\/i>.*\[◉ someService\].*<sub>∟ ID∶ FIELD_INVOKE_CHECK<\/sub>/s,
-    description: "Invoke: italic label, actor in brackets, ID as subscript with corner",
+    pattern: /Invoke.*\[◉ someService\].*<sup>∟ ID∶ FIELD_INVOKE_CHECK<\/sup>/s,
+    description: "Invoke: normal label, actor in brackets, ID as superscript with corner",
   },
   {
     field: "on (transitions)",
@@ -140,8 +140,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "on (actions)",
-    pattern: /\[ϟ transitionAction\]/,
-    description: "Actions on transitions: lightning inside brackets",
+    pattern: /<b>\[ϟ transitionAction\]<\/b>/,
+    description: "Actions on transitions: bold with lightning inside brackets",
   },
   {
     field: "after",

@@ -12,14 +12,15 @@ Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format wi
 
 | Symbol | Meaning |
 |:------:|---------|
-| **bold** | State name (lowercase), Event names |
+| **bold** | State name (lowercase), Event names, Actions |
 | `━━━━━━` | Header separator line |
-| `<sup>` | Description (raised, closer to title) |
-| `<sub>` | Actor ID (lowered subtext) |
-| *italic* | Section labels, *after* keyword |
-| `(tag)` | Tags (styled as pills in Stately.ai) |
-| `[ϟ action]` | Action with lightning inside brackets |
+| `<sup>(tag)</sup>` | Tags (superscript, styled as pills in Stately.ai) |
+| `<sup><b>desc</b></sup>` | Description (superscript bold, raised closer to title) |
+| `<sup>∟ ID∶ x</sup>` | Actor ID (superscript, hugs parent) |
+| *italic* | Only *after* keyword in delayed transitions |
+| `<b>[ϟ action]</b>` | Bold action with lightning inside brackets |
 | `[◉ actor]` | Invoked actor in brackets |
+| `Entry actions` | Section labels (normal text) |
 | `∟` | Corner symbol for nested info |
 | `IF` | Guard condition on transition |
 | `────────` | Section separator |
@@ -47,30 +48,30 @@ Output (actual generated output, not manually written):
 ```mermaid
 stateDiagram-v2
     [*] --> idle
-    idle: <b>idle</b><br/>━━━━━━━━━━━━━━<br/><sup>Waiting for order submission</sup>
-    idle --> validating: <b>SUBMIT</b> IF stockAvailable<br/>[ϟ reserveStock]
-    validating: <b>validating</b><br/>━━━━━━━━━━━━━━<br/>(loading)<br/>(Invariant∶stock_reserved)<br/>(Invariant∶payment_not_charged)<br/>────────<br/><i>Entry actions</i><br/>[ϟ notifyUser]
-    validating --> cancelled: <b>CANCEL</b><br/>[ϟ releaseStock]
+    idle: <b>idle</b><br/>━━━━━━━━━━━━━━<br/><sup><b>Waiting for order submission</b></sup>
+    idle --> validating: <b>SUBMIT</b> IF stockAvailable<br/><b>[ϟ reserveStock]</b>
+    validating: <b>validating</b><br/>━━━━━━━━━━━━━━<br/><sup>(loading)</sup><br/><sup>(Invariant∶stock_reserved)</sup><br/><sup>(Invariant∶payment_not_charged)</sup><br/>────────<br/>Entry actions<br/><b>[ϟ notifyUser]</b>
+    validating --> cancelled: <b>CANCEL</b><br/><b>[ϟ releaseStock]</b>
     validating --> processing: <i>after</i> 5000ms
-    processing: <b>processing</b><br/>━━━━━━━━━━━━━━<br/><sup>Processing payment</sup><br/>(loading)<br/>(Invariant∶stock_reserved)<br/>────────<br/><i>Invoke</i><br/>[◉ paymentProcessor]<br/><sub>∟ ID∶ payment</sub>
+    processing: <b>processing</b><br/>━━━━━━━━━━━━━━<br/><sup>(loading)</sup><br/><sup>(Invariant∶stock_reserved)</sup><br/><sup><b>Processing payment</b></sup><br/>────────<br/>Invoke<br/>[◉ paymentProcessor]<br/><sup>∟ ID∶ payment</sup>
     processing --> completed: <b>PAYMENT_SUCCESS</b>
     processing --> failed: <b>PAYMENT_FAILED</b>
-    completed: <b>completed</b><br/>━━━━━━━━━━━━━━<br/><sup>Order fulfilled</sup><br/>(success)<br/>(Invariant∶payment_charged)<br/>(Invariant∶stock_shipped)<br/>────────<br/><i>Entry actions</i><br/>[ϟ chargeCard]
-    failed: <b>failed</b><br/>━━━━━━━━━━━━━━<br/><sup>Payment failed. Manual retry available.</sup><br/>(error)<br/>(Invariant∶stock_released)<br/>────────<br/><i>Entry actions</i><br/>[ϟ releaseStock]
+    completed: <b>completed</b><br/>━━━━━━━━━━━━━━<br/><sup>(success)</sup><br/><sup>(Invariant∶payment_charged)</sup><br/><sup>(Invariant∶stock_shipped)</sup><br/><sup><b>Order fulfilled</b></sup><br/>────────<br/>Entry actions<br/><b>[ϟ chargeCard]</b>
+    failed: <b>failed</b><br/>━━━━━━━━━━━━━━<br/><sup>(error)</sup><br/><sup>(Invariant∶stock_released)</sup><br/><sup><b>Payment failed. Manual retry available.</b></sup><br/>────────<br/>Entry actions<br/><b>[ϟ releaseStock]</b>
     failed --> processing: <b>RETRY</b> IF hasValidPayment
-    cancelled: <b>cancelled</b><br/>━━━━━━━━━━━━━━<br/><sup>Order cancelled by user</sup><br/>────────<br/><i>Entry actions</i><br/>[ϟ logCancellation]<br/>────────<br/><i>Exit actions</i><br/>[ϟ cleanupResources]
+    cancelled: <b>cancelled</b><br/>━━━━━━━━━━━━━━<br/><sup><b>Order cancelled by user</b></sup><br/>────────<br/>Entry actions<br/><b>[ϟ logCancellation]</b><br/>────────<br/>Exit actions<br/><b>[ϟ cleanupResources]</b>
 ```
 
 ## Supported XState Fields
 
 | Field | Description | Rendering |
 |-------|-------------|-----------|
-| `description` | State description | Plain text below state name |
-| `tags` | Array of string tags | `(tag)` with `INV:` expanded to `Invariant∶` |
+| `description` | State description | `<sup><b>desc</b></sup>` (superscript bold) |
+| `tags` | Array of string tags | `<sup>(tag)</sup>` with `INV:` expanded to `Invariant∶` |
 | `meta` | Generic metadata object | `*key* - value` (italicized keys) |
-| `entry` | Entry actions array | Section with `ϟ actionName` |
-| `exit` | Exit actions array | Section with `ϟ actionName` |
-| `invoke` | Invoked actors | Section with `◉ actorSrc` and `Actor ID∶ id` |
+| `entry` | Entry actions array | `Entry actions` + `<b>[ϟ actionName]</b>` |
+| `exit` | Exit actions array | `Exit actions` + `<b>[ϟ actionName]</b>` |
+| `invoke` | Invoked actors | `Invoke` + `[◉ actorSrc]` + `<sup>∟ ID∶ id</sup>` |
 | `on` | Event transitions | `EVENT IF guard` on edges |
 | `after` | Delayed transitions | `after Xms` on edges |
 

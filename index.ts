@@ -156,13 +156,13 @@ export function formatTransitionLabel(
     label += ` IF ${transition.guard.type}`;
   }
 
-  // Action names in brackets with lightning inside (matching Stately.ai)
+  // Action names in bold brackets with lightning inside (matching Stately.ai)
   if (includeActions && transition.actions && transition.actions.length > 0) {
     const actionNames = transition.actions
       .map(a => a.type)
       .filter(t => t && !t.startsWith('xstate.'));
     if (actionNames.length > 0) {
-      const formatted = actionNames.map(a => `[ϟ ${a}]`).join(' ');
+      const formatted = actionNames.map(a => `<b>[ϟ ${a}]</b>`).join(' ');
       label += `<br/>${formatted}`;
     }
   }
@@ -213,16 +213,17 @@ function buildStateLabel(
   lines.push(`<b>${name.toLowerCase()}</b>`);
   lines.push(`━━━━━━━━━━━━━━`);
 
-  // Description: superscript to sit closer to title (sub was merging with tags below)
-  if (desc) {
-    lines.push(`<sup>${desc}</sup>`);
-  }
-
-  // Tags - each on own line in parentheses for pill-like appearance
+  // Tags FIRST (Stately.ai shows tags at top as small pill badges)
+  // Using superscript for raised smaller appearance
   if (tags.length > 0) {
     for (const tag of tags) {
-      lines.push(`(${escapeMermaidText(tag)})`);
+      lines.push(`<sup>(${escapeMermaidText(tag)})</sup>`);
     }
+  }
+
+  // Description AFTER tags - superscript bold for prominence while staying compact
+  if (desc) {
+    lines.push(`<sup><b>${desc}</b></sup>`);
   }
 
   // Meta as generic key-value pairs (italicized keys)
@@ -233,31 +234,31 @@ function buildStateLabel(
     }
   }
 
-  // Entry actions: italic label (lighter feel), lightning INSIDE brackets
+  // Entry actions: normal label, bold action with lightning INSIDE brackets
   if (entry.length > 0) {
     lines.push(`────────`);
-    lines.push(`<i>Entry actions</i>`);
+    lines.push(`Entry actions`);
     for (const action of entry) {
-      lines.push(`[ϟ ${action}]`);
+      lines.push(`<b>[ϟ ${action}]</b>`);
     }
   }
 
-  // Exit actions: italic label, lightning INSIDE brackets
+  // Exit actions: normal label, bold action with lightning INSIDE brackets
   if (exit.length > 0) {
     lines.push(`────────`);
-    lines.push(`<i>Exit actions</i>`);
+    lines.push(`Exit actions`);
     for (const action of exit) {
-      lines.push(`[ϟ ${action}]`);
+      lines.push(`<b>[ϟ ${action}]</b>`);
     }
   }
 
-  // Invokes: italic label, actor in brackets, Actor ID as subscript with corner symbol
+  // Invokes: normal label, actor in brackets, Actor ID as superscript to hug closer to parent
   if (invokes.length > 0) {
     lines.push(`────────`);
-    lines.push(`<i>Invoke</i>`);
+    lines.push(`Invoke`);
     for (const inv of invokes) {
       lines.push(`[◉ ${escapeMermaidText(inv.src)}]`);
-      lines.push(`<sub>∟ ID∶ ${escapeMermaidText(inv.id)}</sub>`);
+      lines.push(`<sup>∟ ID∶ ${escapeMermaidText(inv.id)}</sup>`);
     }
   }
 
