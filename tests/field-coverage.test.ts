@@ -100,8 +100,8 @@ const output = toMermaid(comprehensiveMachine, { title: "Field Coverage Test" })
 const checks: { field: string; pattern: RegExp; description: string }[] = [
   {
     field: "description",
-    pattern: /FIELD_DESCRIPTION_CHECK/,
-    description: "State description (plain text)",
+    pattern: /<sub>FIELD_DESCRIPTION_CHECK<\/sub>/,
+    description: "State description (subscript for smaller text)",
   },
   {
     field: "tags",
@@ -125,8 +125,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "invoke",
-    pattern: /<i>Invoke<\/i>.*\[◉ someService\].*∟ ID∶ FIELD_INVOKE_CHECK/s,
-    description: "Invoke: italic label, actor in brackets, ID as subtext",
+    pattern: /<i>Invoke<\/i>.*\[◉ someService\].*<sub>∟ ID∶ FIELD_INVOKE_CHECK<\/sub>/s,
+    description: "Invoke: italic label, actor in brackets, ID as subscript with corner",
   },
   {
     field: "on (transitions)",

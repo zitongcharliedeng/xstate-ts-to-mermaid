@@ -14,12 +14,12 @@ Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format wi
 |:------:|---------|
 | **bold** | State name (lowercase), Event names |
 | `━━━━━━` | Header separator line |
-| plain | Description text |
+| `<sub>` | Description & Actor ID (smaller text) |
 | *italic* | Section labels, *after* keyword |
 | `(tag)` | Tags (styled as pills in Stately.ai) |
 | `[ϟ action]` | Action with lightning inside brackets |
 | `[◉ actor]` | Invoked actor in brackets |
-| `∟ ID∶` | Actor ID as subtext |
+| `∟` | Corner symbol for nested info |
 | `IF` | Guard condition on transition |
 | `────────` | Section separator |
 
@@ -46,18 +46,18 @@ Output (actual generated output, not manually written):
 ```mermaid
 stateDiagram-v2
     [*] --> idle
-    idle: <b>idle</b><br/>━━━━━━━━━━━━━━<br/>Waiting for order submission
+    idle: <b>idle</b><br/>━━━━━━━━━━━━━━<br/><sub>Waiting for order submission</sub>
     idle --> validating: <b>SUBMIT</b> IF stockAvailable<br/>[ϟ reserveStock]
     validating: <b>validating</b><br/>━━━━━━━━━━━━━━<br/>(loading)<br/>(Invariant∶stock_reserved)<br/>(Invariant∶payment_not_charged)<br/>────────<br/><i>Entry actions</i><br/>[ϟ notifyUser]
     validating --> cancelled: <b>CANCEL</b><br/>[ϟ releaseStock]
     validating --> processing: <i>after</i> 5000ms
-    processing: <b>processing</b><br/>━━━━━━━━━━━━━━<br/>Processing payment<br/>(loading)<br/>(Invariant∶stock_reserved)<br/>────────<br/><i>Invoke</i><br/>[◉ paymentProcessor]<br/>∟ ID∶ payment
+    processing: <b>processing</b><br/>━━━━━━━━━━━━━━<br/><sub>Processing payment</sub><br/>(loading)<br/>(Invariant∶stock_reserved)<br/>────────<br/><i>Invoke</i><br/>[◉ paymentProcessor]<br/><sub>∟ ID∶ payment</sub>
     processing --> completed: <b>PAYMENT_SUCCESS</b>
     processing --> failed: <b>PAYMENT_FAILED</b>
-    completed: <b>completed</b><br/>━━━━━━━━━━━━━━<br/>Order fulfilled<br/>(success)<br/>(Invariant∶payment_charged)<br/>(Invariant∶stock_shipped)<br/>────────<br/><i>Entry actions</i><br/>[ϟ chargeCard]
-    failed: <b>failed</b><br/>━━━━━━━━━━━━━━<br/>Payment failed. Manual retry available.<br/>(error)<br/>(Invariant∶stock_released)<br/>────────<br/><i>Entry actions</i><br/>[ϟ releaseStock]
+    completed: <b>completed</b><br/>━━━━━━━━━━━━━━<br/><sub>Order fulfilled</sub><br/>(success)<br/>(Invariant∶payment_charged)<br/>(Invariant∶stock_shipped)<br/>────────<br/><i>Entry actions</i><br/>[ϟ chargeCard]
+    failed: <b>failed</b><br/>━━━━━━━━━━━━━━<br/><sub>Payment failed. Manual retry available.</sub><br/>(error)<br/>(Invariant∶stock_released)<br/>────────<br/><i>Entry actions</i><br/>[ϟ releaseStock]
     failed --> processing: <b>RETRY</b> IF hasValidPayment
-    cancelled: <b>cancelled</b><br/>━━━━━━━━━━━━━━<br/>Order cancelled by user<br/>────────<br/><i>Entry actions</i><br/>[ϟ logCancellation]<br/>────────<br/><i>Exit actions</i><br/>[ϟ cleanupResources]
+    cancelled: <b>cancelled</b><br/>━━━━━━━━━━━━━━<br/><sub>Order cancelled by user</sub><br/>────────<br/><i>Entry actions</i><br/>[ϟ logCancellation]<br/>────────<br/><i>Exit actions</i><br/>[ϟ cleanupResources]
 ```
 
 ## Supported XState Fields

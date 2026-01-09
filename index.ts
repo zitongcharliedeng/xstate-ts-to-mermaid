@@ -213,9 +213,9 @@ function buildStateLabel(
   lines.push(`<b>${name.toLowerCase()}</b>`);
   lines.push(`━━━━━━━━━━━━━━`);
 
-  // Description: plain text (Stately.ai shows normal weight text)
+  // Description: subscript for smaller text (Stately.ai shows lighter/smaller text)
   if (desc) {
-    lines.push(desc);
+    lines.push(`<sub>${desc}</sub>`);
   }
 
   // Tags - each on own line in parentheses for pill-like appearance
@@ -251,13 +251,13 @@ function buildStateLabel(
     }
   }
 
-  // Invokes: italic label, actor in brackets, Actor ID as subtext
+  // Invokes: italic label, actor in brackets, Actor ID as subscript with corner symbol
   if (invokes.length > 0) {
     lines.push(`────────`);
     lines.push(`<i>Invoke</i>`);
     for (const inv of invokes) {
       lines.push(`[◉ ${escapeMermaidText(inv.src)}]`);
-      lines.push(`∟ ID∶ ${escapeMermaidText(inv.id)}`);
+      lines.push(`<sub>∟ ID∶ ${escapeMermaidText(inv.id)}</sub>`);
     }
   }
 
