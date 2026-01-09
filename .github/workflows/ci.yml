@@ -59,10 +59,12 @@ jobs:
         run: |
           mkdir -p docs
           echo '{"args": ["--no-sandbox", "--disable-setuid-sandbox"]}' > /tmp/puppeteer.json
-          mmdc -i diagram.mmd -o docs/order-machine.png -t neutral -b transparent -p /tmp/puppeteer.json
+          mmdc -i diagram.mmd -o docs/library-output.png -t dark -b transparent -p /tmp/puppeteer.json
 
-      - name: Upload diagram artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: state-diagram
-          path: docs/order-machine.png
+      - name: Commit updated diagram if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/library-output.png
+          git diff --staged --quiet || git commit -m "chore: auto-update library-output.png [skip ci]"
+          git push || echo "Nothing to push"
