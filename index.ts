@@ -59,10 +59,15 @@ export function formatEventName(event: string): string {
 
 /**
  * Escape text for Mermaid state descriptions.
- * Colons break `stateName: description` syntax, so replace with dash.
+ * Colons break `stateName: description` syntax, so replace with unicode ratio character.
+ * Also expands common abbreviations for readability.
  */
 export function escapeMermaidText(text: string): string {
-  return text.replace(/:/g, ' -');
+  // Expand INV: abbreviation to full word for readability
+  let result = text.replace(/^INV:/i, 'Invariant∶');
+  // Replace remaining colons with unicode ratio character (U+2236)
+  result = result.replace(/:/g, '∶');
+  return result;
 }
 
 /**
@@ -145,7 +150,7 @@ export function formatTransitionLabel(
       .map(a => a.type)
       .filter(t => t && !t.startsWith('xstate.'));
     if (actionNames.length > 0) {
-      label += `<br/>⚡ ${actionNames.join(', ')}`;
+      label += `<br/>ϟ ${actionNames.join(', ')}`;
     }
   }
 
@@ -200,10 +205,13 @@ function buildStateLabel(
     lines.push(desc);
   }
 
-  // Tags - horizontal with brackets for pill-like appearance (matches Stately.ai)
+  // Tags - each on own line to prevent bad wrapping in narrow state boxes
+  // Using parentheses (tag) for pill-like appearance - brackets [] break Mermaid parser
+  // Escape colons in tag names as they break Mermaid state description syntax
   if (tags.length > 0) {
-    const tagLine = tags.map(t => `[${t}]`).join(' ');
-    lines.push(tagLine);
+    for (const tag of tags) {
+      lines.push(`(${escapeMermaidText(tag)})`);
+    }
   }
 
   // Meta as generic key-value pairs (italicized keys)
@@ -214,31 +222,33 @@ function buildStateLabel(
     }
   }
 
-  // Entry actions (separator + bold italic label for visual distinction)
+  // Entry actions (separator + bold label for visual distinction)
+  // Using unicode box drawing for separator, ϟ (koppa) for lightning-like action symbol
   if (entry.length > 0) {
-    lines.push(`───────────`);
-    lines.push(`<b><i>Entry actions</i></b>`);
+    lines.push(`────────`);
+    lines.push(`<b>Entry</b>`);
     for (const action of entry) {
-      lines.push(`⚡ ${action}`);
+      lines.push(`ϟ ${action}`);
     }
   }
 
-  // Exit actions (separator + bold italic label for visual distinction)
+  // Exit actions (separator + bold label for visual distinction)
   if (exit.length > 0) {
-    lines.push(`───────────`);
-    lines.push(`<b><i>Exit actions</i></b>`);
+    lines.push(`────────`);
+    lines.push(`<b>Exit</b>`);
     for (const action of exit) {
-      lines.push(`⚡ ${action}`);
+      lines.push(`ϟ ${action}`);
     }
   }
 
-  // Invokes (separator + bold italic label for visual distinction)
+  // Invokes (separator + bold label for visual distinction)
+  // Using ◉ (fisheye) to match Stately.ai's invoke symbol
   if (invokes.length > 0) {
-    lines.push(`───────────`);
-    lines.push(`<b><i>Invoke</i></b>`);
+    lines.push(`────────`);
+    lines.push(`<b>Invoke</b>`);
     for (const inv of invokes) {
-      lines.push(`◉ ${inv.src}`);
-      lines.push(`Actor ID - ${inv.id}`);
+      lines.push(`◉ ${escapeMermaidText(inv.src)}`);
+      lines.push(`Actor ID∶ ${escapeMermaidText(inv.id)}`);
     }
   }
 

@@ -4,30 +4,20 @@ Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format wi
 
 ## Visual Parity with Stately.ai
 
-<table>
-<tr>
-<th>Stately.ai Editor</th>
-<th>This Library (Mermaid)</th>
-<th>Legend</th>
-</tr>
-<tr>
-<td valign="top"><img src=".github/assets/stately-ai-reference.png" alt="Stately.ai editor" width="300"/></td>
-<td valign="top"><img src=".github/assets/library-output.png" alt="Library mermaid output" width="300"/></td>
-<td valign="top">
+| Stately.ai Editor (Reference) | This Library (Mermaid Output) |
+|:-----------------------------:|:-----------------------------:|
+| <img src=".github/assets/stately-ai-reference.png" alt="Stately.ai editor" width="400"/> | <img src=".github/assets/library-output.png" alt="Library mermaid output" width="400"/> |
+
+**Legend:**
 
 | Symbol | Meaning |
 |:------:|---------|
-| `[tag]` | Tags (pill-like styling) |
-| `<b>` | Bold state names |
-| 🔒 | State [invariant](https://en.wikipedia.org/wiki/Invariant_(mathematics)#Invariants_in_computer_science) |
-| ⚡ | Action (entry/exit/transition) |
-| ◉ | Invoked actor |
-| `IF` | Guard condition |
-| `───` | Section separator |
-
-</td>
-</tr>
-</table>
+| `(tag)` | Tags (styled as pills in Stately.ai) |
+| **bold** | State names |
+| `ϟ` | Action (entry/exit/transition) - lightning symbol |
+| `◉` | Invoked actor - fisheye symbol |
+| `IF` | Guard condition on transition |
+| `────────` | Section separator |
 
 ## Why?
 
@@ -61,11 +51,11 @@ const orderMachine = setup({
       | "loading"
       | "error"
       | "success"
-      | "🔒 stock_reserved"
-      | "🔒 payment_not_charged"
-      | "🔒 payment_charged"
-      | "🔒 stock_shipped"
-      | "🔒 stock_released",
+      | "INV:stock_reserved"
+      | "INV:payment_not_charged"
+      | "INV:payment_charged"
+      | "INV:stock_shipped"
+      | "INV:stock_released",
   },
   guards: {
     hasValidPayment: () => true,
@@ -98,7 +88,7 @@ const orderMachine = setup({
       },
     },
     validating: {
-      tags: ["loading", "🔒 stock_reserved", "🔒 payment_not_charged"],
+      tags: ["loading", "INV:stock_reserved", "INV:payment_not_charged"],
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -108,7 +98,7 @@ const orderMachine = setup({
       },
     },
     processing: {
-      tags: ["loading", "🔒 stock_reserved"],
+      tags: ["loading", "INV:stock_reserved"],
       description: "Processing payment",
       invoke: [{ src: "paymentProcessor", id: "payment" }],
       on: {
@@ -117,12 +107,12 @@ const orderMachine = setup({
       },
     },
     completed: {
-      tags: ["success", "🔒 payment_charged", "🔒 stock_shipped"],
+      tags: ["success", "INV:payment_charged", "INV:stock_shipped"],
       description: "Order fulfilled",
       entry: [{ type: "chargeCard" }],
     },
     failed: {
-      tags: ["error", "🔒 stock_released"],
+      tags: ["error", "INV:stock_released"],
       description: "Payment failed. Manual retry available.",
       entry: [{ type: "releaseStock" }],
       on: {
@@ -151,17 +141,17 @@ Output (actual generated output, not manually written):
 stateDiagram-v2
     [*] --> idle
     idle: <b>idle</b><br/>Waiting for order submission
-    idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
-    validating: <b>validating</b><br/>[loading] [🔒 stock_reserved] [🔒 payment_not_charged]<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
-    validating --> cancelled: CANCEL<br/>⚡ releaseStock
+    idle --> validating: SUBMIT IF stockAvailable<br/>ϟ reserveStock
+    validating: <b>validating</b><br/>(loading)<br/>(Invariant∶stock_reserved)<br/>(Invariant∶payment_not_charged)<br/>────────<br/><b>Entry</b><br/>ϟ notifyUser
+    validating --> cancelled: CANCEL<br/>ϟ releaseStock
     validating --> processing: after 5000ms
-    processing: <b>processing</b><br/>Processing payment<br/>[loading] [🔒 stock_reserved]<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
+    processing: <b>processing</b><br/>Processing payment<br/>(loading)<br/>(Invariant∶stock_reserved)<br/>────────<br/><b>Invoke</b><br/>◉ paymentProcessor<br/>Actor ID∶ payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: <b>completed</b><br/>Order fulfilled<br/>[success] [🔒 payment_charged] [🔒 stock_shipped]<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
-    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>[error] [🔒 stock_released]<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
+    completed: <b>completed</b><br/>Order fulfilled<br/>(success)<br/>(Invariant∶payment_charged)<br/>(Invariant∶stock_shipped)<br/>────────<br/><b>Entry</b><br/>ϟ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>(error)<br/>(Invariant∶stock_released)<br/>────────<br/><b>Entry</b><br/>ϟ releaseStock
     failed --> processing: RETRY IF hasValidPayment
-    cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ logCancellation<br/>───────────<br/><b><i>Exit actions</i></b><br/>⚡ cleanupResources
+    cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>────────<br/><b>Entry</b><br/>ϟ logCancellation<br/>────────<br/><b>Exit</b><br/>ϟ cleanupResources
 ```
 
 ## Supported XState Fields
@@ -169,11 +159,11 @@ stateDiagram-v2
 | Field | Description | Rendering |
 |-------|-------------|-----------|
 | `description` | State description | Plain text below state name |
-| `tags` | Array of string tags | `[tag1] [tag2]` |
+| `tags` | Array of string tags | `(tag)` with `INV:` expanded to `Invariant∶` |
 | `meta` | Generic metadata object | `*key* - value` (italicized keys) |
-| `entry` | Entry actions array | Section with `⚡ actionName` |
-| `exit` | Exit actions array | Section with `⚡ actionName` |
-| `invoke` | Invoked actors | Section with `◉ actorSrc` and `Actor ID - id` |
+| `entry` | Entry actions array | Section with `ϟ actionName` |
+| `exit` | Exit actions array | Section with `ϟ actionName` |
+| `invoke` | Invoked actors | Section with `◉ actorSrc` and `Actor ID∶ id` |
 | `on` | Event transitions | `EVENT IF guard` on edges |
 | `after` | Delayed transitions | `after Xms` on edges |
 

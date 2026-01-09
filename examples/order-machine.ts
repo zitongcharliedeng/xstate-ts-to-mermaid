@@ -21,11 +21,11 @@ export const orderMachine = setup({
       | "loading"
       | "error"
       | "success"
-      | "🔒 stock_reserved"
-      | "🔒 payment_not_charged"
-      | "🔒 payment_charged"
-      | "🔒 stock_shipped"
-      | "🔒 stock_released",
+      | "INV:stock_reserved"
+      | "INV:payment_not_charged"
+      | "INV:payment_charged"
+      | "INV:stock_shipped"
+      | "INV:stock_released",
   },
   guards: {
     hasValidPayment: () => true,
@@ -61,7 +61,7 @@ export const orderMachine = setup({
       },
     },
     validating: {
-      tags: ["loading", "🔒 stock_reserved", "🔒 payment_not_charged"],
+      tags: ["loading", "INV:stock_reserved", "INV:payment_not_charged"],
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -71,7 +71,7 @@ export const orderMachine = setup({
       },
     },
     processing: {
-      tags: ["loading", "🔒 stock_reserved"],
+      tags: ["loading", "INV:stock_reserved"],
       description: "Processing payment",
       invoke: [{ src: "paymentProcessor", id: "payment" }],
       on: {
@@ -80,12 +80,12 @@ export const orderMachine = setup({
       },
     },
     completed: {
-      tags: ["success", "🔒 payment_charged", "🔒 stock_shipped"],
+      tags: ["success", "INV:payment_charged", "INV:stock_shipped"],
       description: "Order fulfilled",
       entry: [{ type: "chargeCard" }],
     },
     failed: {
-      tags: ["error", "🔒 stock_released"],
+      tags: ["error", "INV:stock_released"],
       description: "Payment failed. Manual retry available.",
       entry: [{ type: "releaseStock" }],
       on: {

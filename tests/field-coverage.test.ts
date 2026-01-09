@@ -40,7 +40,7 @@ const comprehensiveMachine = setup({
       | { type: "GO" }
       | { type: "BACK" }
       | { type: "DONE" },
-    tags: {} as "🔒 invariant_a" | "🔒 invariant_b" | "category",
+    tags: {} as "INV:invariant_a" | "INV:invariant_b" | "category",
   },
   guards: {
     isValid: () => true,
@@ -63,7 +63,7 @@ const comprehensiveMachine = setup({
       // description: ✅
       description: "FIELD_DESCRIPTION_CHECK",
       // tags: ✅
-      tags: ["🔒 invariant_a", "category"],
+      tags: ["INV:invariant_a", "category"],
       // meta: ✅
       meta: { customKey: "FIELD_META_CHECK" },
       // entry: ✅
@@ -86,7 +86,7 @@ const comprehensiveMachine = setup({
       },
     },
     stateB: {
-      tags: ["🔒 invariant_b"],
+      tags: ["INV:invariant_b"],
       on: {
         BACK: { target: "stateA" },
       },
@@ -105,8 +105,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "tags",
-    pattern: /\[🔒 invariant_a\].*\[category\]/s,
-    description: "Tags in brackets for pill-like appearance",
+    pattern: /\(Invariant∶invariant_a\).*\(category\)/s,
+    description: "Tags in parentheses with full Invariant label",
   },
   {
     field: "meta",
@@ -115,18 +115,18 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "entry",
-    pattern: /Entry actions.*⚡ onEnter/s,
-    description: "Entry actions section",
+    pattern: /Entry.*ϟ onEnter/s,
+    description: "Entry actions section with lightning symbol",
   },
   {
     field: "exit",
-    pattern: /Exit actions.*⚡ onExit/s,
-    description: "Exit actions section",
+    pattern: /Exit.*ϟ onExit/s,
+    description: "Exit actions section with lightning symbol",
   },
   {
     field: "invoke",
-    pattern: /Invoke.*◉ someService.*FIELD_INVOKE_CHECK/s,
-    description: "Invoke actors section",
+    pattern: /Invoke.*◉ someService.*Actor ID∶ FIELD_INVOKE_CHECK/s,
+    description: "Invoke actors section with fisheye symbol",
   },
   {
     field: "on (transitions)",
@@ -140,8 +140,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "on (actions)",
-    pattern: /⚡ transitionAction/,
-    description: "Actions on transitions",
+    pattern: /ϟ transitionAction/,
+    description: "Actions on transitions with lightning symbol",
   },
   {
     field: "after",
