@@ -2,6 +2,9 @@
 /**
  * This file tests the README example and outputs the ACTUAL generated mermaid.
  * The output of this script should match what's in the README.
+ *
+ * Showcases ALL supported XState v5 fields:
+ * - description, tags, meta, entry, exit, invoke, on, after
  */
 import { setup } from "xstate";
 import { toMermaid } from "./index.js";
@@ -14,7 +17,15 @@ const orderMachine = setup({
       | { type: "PAYMENT_SUCCESS" }
       | { type: "PAYMENT_FAILED" }
       | { type: "RETRY" },
-    tags: {} as "loading" | "error" | "success" | "stock_reserved" | "payment_not_charged" | "payment_charged" | "stock_shipped" | "stock_released",
+    tags: {} as
+      | "loading"
+      | "error"
+      | "success"
+      | "🔒 stock_reserved"
+      | "🔒 payment_not_charged"
+      | "🔒 payment_charged"
+      | "🔒 stock_shipped"
+      | "🔒 stock_released",
   },
   guards: {
     hasValidPayment: () => true,
@@ -25,6 +36,8 @@ const orderMachine = setup({
     reserveStock: () => {},
     chargeCard: () => {},
     releaseStock: () => {},
+    logCancellation: () => {},
+    cleanupResources: () => {},
   },
   actors: {
     paymentProcessor: {} as any,
@@ -44,7 +57,7 @@ const orderMachine = setup({
       },
     },
     validating: {
-      tags: ["loading", "stock_reserved", "payment_not_charged"],
+      tags: ["loading", "🔒 stock_reserved", "🔒 payment_not_charged"],
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -54,7 +67,7 @@ const orderMachine = setup({
       },
     },
     processing: {
-      tags: ["loading", "stock_reserved"],
+      tags: ["loading", "🔒 stock_reserved"],
       description: "Processing payment",
       invoke: [{ src: "paymentProcessor", id: "payment" }],
       on: {
@@ -63,12 +76,12 @@ const orderMachine = setup({
       },
     },
     completed: {
-      tags: ["success", "payment_charged", "stock_shipped"],
+      tags: ["success", "🔒 payment_charged", "🔒 stock_shipped"],
       description: "Order fulfilled",
       entry: [{ type: "chargeCard" }],
     },
     failed: {
-      tags: ["error", "stock_released"],
+      tags: ["error", "🔒 stock_released"],
       description: "Payment failed. Manual retry available.",
       entry: [{ type: "releaseStock" }],
       on: {
@@ -80,6 +93,8 @@ const orderMachine = setup({
     },
     cancelled: {
       description: "Order cancelled by user",
+      entry: [{ type: "logCancellation" }],
+      exit: [{ type: "cleanupResources" }],
     },
   },
 });

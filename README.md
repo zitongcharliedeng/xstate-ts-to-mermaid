@@ -18,7 +18,8 @@ npm install xstate-ts-to-mermaid
 import { setup } from "xstate";
 import { toMermaid } from "xstate-ts-to-mermaid";
 
-// Example using official XState v5 fields: description, tags, entry, invoke
+// Example showcasing ALL supported XState v5 fields:
+// description, tags (with 🔒 invariants), entry, exit, invoke, on, after
 const orderMachine = setup({
   types: {
     events: {} as
@@ -27,7 +28,15 @@ const orderMachine = setup({
       | { type: "PAYMENT_SUCCESS" }
       | { type: "PAYMENT_FAILED" }
       | { type: "RETRY" },
-    tags: {} as "loading" | "error" | "success" | "stock_reserved" | "payment_not_charged" | "payment_charged" | "stock_shipped" | "stock_released",
+    tags: {} as
+      | "loading"
+      | "error"
+      | "success"
+      | "🔒 stock_reserved"
+      | "🔒 payment_not_charged"
+      | "🔒 payment_charged"
+      | "🔒 stock_shipped"
+      | "🔒 stock_released",
   },
   guards: {
     hasValidPayment: () => true,
@@ -38,6 +47,8 @@ const orderMachine = setup({
     reserveStock: () => {},
     chargeCard: () => {},
     releaseStock: () => {},
+    logCancellation: () => {},
+    cleanupResources: () => {},
   },
   actors: {
     paymentProcessor: {} as any,
@@ -57,7 +68,7 @@ const orderMachine = setup({
       },
     },
     validating: {
-      tags: ["loading", "stock_reserved", "payment_not_charged"],
+      tags: ["loading", "🔒 stock_reserved", "🔒 payment_not_charged"],
       entry: [{ type: "notifyUser" }],
       on: {
         CANCEL: { target: "cancelled", actions: [{ type: "releaseStock" }] },
@@ -67,7 +78,7 @@ const orderMachine = setup({
       },
     },
     processing: {
-      tags: ["loading", "stock_reserved"],
+      tags: ["loading", "🔒 stock_reserved"],
       description: "Processing payment",
       invoke: [{ src: "paymentProcessor", id: "payment" }],
       on: {
@@ -76,12 +87,12 @@ const orderMachine = setup({
       },
     },
     completed: {
-      tags: ["success", "payment_charged", "stock_shipped"],
+      tags: ["success", "🔒 payment_charged", "🔒 stock_shipped"],
       description: "Order fulfilled",
       entry: [{ type: "chargeCard" }],
     },
     failed: {
-      tags: ["error", "stock_released"],
+      tags: ["error", "🔒 stock_released"],
       description: "Payment failed. Manual retry available.",
       entry: [{ type: "releaseStock" }],
       on: {
@@ -93,6 +104,8 @@ const orderMachine = setup({
     },
     cancelled: {
       description: "Order cancelled by user",
+      entry: [{ type: "logCancellation" }],
+      exit: [{ type: "cleanupResources" }],
     },
   },
 });
@@ -108,29 +121,41 @@ stateDiagram-v2
     [*] --> idle
     idle: <b>idle</b><br/>Waiting for order submission
     idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
-    validating: <b>validating</b><br/>🏷️ loading, stock_reserved, payment_not_charged<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
+    validating: <b>validating</b><br/>🏷️ loading, 🔒 stock_reserved, 🔒 payment_not_charged<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
     validating --> cancelled: CANCEL<br/>⚡ releaseStock
     validating --> processing: after 5000ms
-    processing: <b>processing</b><br/>Processing payment<br/>🏷️ loading, stock_reserved<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
+    processing: <b>processing</b><br/>Processing payment<br/>🏷️ loading, 🔒 stock_reserved<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: <b>completed</b><br/>Order fulfilled<br/>🏷️ success, payment_charged, stock_shipped<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
-    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>🏷️ error, stock_released<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
+    completed: <b>completed</b><br/>Order fulfilled<br/>🏷️ success, 🔒 payment_charged, 🔒 stock_shipped<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>🏷️ error, 🔒 stock_released<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
     failed --> processing: RETRY IF hasValidPayment
-    cancelled: <b>cancelled</b><br/>Order cancelled by user
+    cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ logCancellation<br/>───────────<br/><b><i>Exit actions</i></b><br/>⚡ cleanupResources
 ```
+
+## Using Tags for Invariants
+
+Tags can contain any string including emojis and spaces. Use the 🔒 prefix for state invariants:
+
+```typescript
+validating: {
+  tags: ["loading", "🔒 stock_reserved", "🔒 payment_not_charged"],
+}
+```
+
+This renders as: `🏷️ loading, 🔒 stock_reserved, 🔒 payment_not_charged`
 
 ## Stately.ai Visual Parity
 
 This library renders all official XState v5 state node fields:
 
 - **`description`** - State description text
-- **`tags`** - Array of tags with 🏷️ prefix (use for invariants/categorization)
+- **`tags`** - Array of tags with 🏷️ prefix (use 🔒 prefix in tag names for invariants)
 - **`meta`** - Generic key-value metadata (rendered with *italicized* keys)
 - **`entry`** - Entry actions with ⚡ prefix
 - **`exit`** - Exit actions with ⚡ prefix
 - **`invoke`** - Invoked actors with ◉ prefix
-- **`on`** / **`after`** - Transitions with guards (IF format)
+- **`on`** / **`after`** - Transitions with guards (IF format) and actions
 
 Visual formatting:
 - **`<b>` Bold state headers**: State name rendered prominently
@@ -147,7 +172,7 @@ Visual formatting:
 ```typescript
 // RECOMMENDED - survives Stately.ai import/export
 validating: {
-  tags: ["loading", "stock_reserved", "payment_not_charged"],
+  tags: ["loading", "🔒 stock_reserved"],
 }
 
 // WORKS but gets cleansed by Stately.ai visual editor
@@ -214,6 +239,16 @@ getStateName("machine.parent.child"); // "child"
 formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 ```
 
+## Testing
+
+Run the field coverage test to verify all XState fields are captured:
+
+```bash
+npx tsx field-coverage.test.ts
+```
+
+This deterministically checks that every renderable XState v5 field is present in the output.
+
 ## Features
 
 - XState v5 TypeScript compatible
@@ -222,7 +257,7 @@ formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 - `<b><i>` bold+italic section headers (Entry actions, Exit actions, Invoke)
 - `───────────` horizontal separators for visual distinction
 - `<br/>` proper line breaks
-- 🏷️ tags support (recommended for invariants)
+- 🏷️ tags support (use 🔒 prefix for invariants)
 - `meta` rendered with italicized keys (warning: cleansed by Stately.ai)
 - ⚡ entry, exit, and transition actions
 - ◉ invoke actors with source and ID
