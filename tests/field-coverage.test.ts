@@ -125,7 +125,7 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "invoke",
-    pattern: /Invoke.*<b>\[◉ someService\]<\/b>.*<sup><b>∟ ID∶ FIELD_INVOKE_CHECK<\/b><\/sup>/s,
+    pattern: /Invoke.*<b>\[◉ someService\]<\/b>.*<b><sup>∟ ID∶ FIELD_INVOKE_CHECK<\/sup><\/b>/s,
     description: "Invoke: normal label, bold actor in brackets, bold ID as superscript",
   },
   {

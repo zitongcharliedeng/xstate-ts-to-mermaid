@@ -257,7 +257,7 @@ function buildStateLabel(
     lines.push(`Invoke`);
     for (const inv of invokes) {
       lines.push(`<b>[◉ ${escapeMermaidText(inv.src)}]</b>`);
-      lines.push(`<sup><b>∟ ID∶ ${escapeMermaidText(inv.id)}</b></sup>`);
+      lines.push(`<b><sup>∟ ID∶ ${escapeMermaidText(inv.id)}</sup></b>`);
     }
   }
 
