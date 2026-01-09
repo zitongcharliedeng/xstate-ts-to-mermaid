@@ -129,8 +129,8 @@ export function formatTransitionLabel(
  * - State name as bold header
  * - Description below
  * - Invariants with 🔒 prefix
- * - Entry actions section with italic label
- * - Invoke section with italic label
+ * - Entry actions section with separator + bold italic label
+ * - Invoke section with separator + bold italic label
  */
 function buildStateLabel(
   name: string,
@@ -157,17 +157,19 @@ function buildStateLabel(
     }
   }
 
-  // Entry actions (italic subheading label, Stately.ai style)
+  // Entry actions (separator + bold italic label for visual distinction)
   if (entry.length > 0) {
-    lines.push(`<i>Entry actions</i>`);
+    lines.push(`───────────`);
+    lines.push(`<b><i>Entry actions</i></b>`);
     for (const action of entry) {
       lines.push(`⚡ ${action}`);
     }
   }
 
-  // Invokes (italic subheading label, Stately.ai style)
+  // Invokes (separator + bold italic label for visual distinction)
   if (invokes.length > 0) {
-    lines.push(`<i>Invoke</i>`);
+    lines.push(`───────────`);
+    lines.push(`<b><i>Invoke</i></b>`);
     for (const inv of invokes) {
       lines.push(`◉ ${inv.src}`);
       lines.push(`Actor ID - ${inv.id}`);

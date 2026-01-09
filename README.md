@@ -109,14 +109,14 @@ stateDiagram-v2
     [*] --> idle
     idle: <b>idle</b><br/>Waiting for order submission
     idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
-    validating: <b>validating</b><br/>🔒 stock_reserved<br/>🔒 payment_not_charged<br/><i>Entry actions</i><br/>⚡ notifyUser
+    validating: <b>validating</b><br/>🔒 stock_reserved<br/>🔒 payment_not_charged<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
     validating --> cancelled: CANCEL<br/>⚡ releaseStock
     validating --> processing: after 5000ms
-    processing: <b>processing</b><br/>Processing payment<br/><i>Invoke</i><br/>◉ paymentProcessor<br/>Actor ID - payment
+    processing: <b>processing</b><br/>Processing payment<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: <b>completed</b><br/>Order fulfilled<br/>🔒 payment_charged<br/>🔒 stock_shipped<br/><i>Entry actions</i><br/>⚡ chargeCard
-    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/><i>Entry actions</i><br/>⚡ releaseStock
+    completed: <b>completed</b><br/>Order fulfilled<br/>🔒 payment_charged<br/>🔒 stock_shipped<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
     failed --> processing: RETRY IF hasValidPayment
     cancelled: <b>cancelled</b><br/>Order cancelled by user
 ```
@@ -131,15 +131,21 @@ This library aims to match Stately.ai's visual formatting:
 
 - **`<b>` Bold state headers**: State name rendered prominently
 - **`<br/>` Line breaks**: Proper separation between elements
-- **`<i>` Italic subheadings**: "Entry actions" and "Invoke" labels
-- **🔒 Invariants**: `meta.invariants` rendered with lock emoji
+- **`───────────` Horizontal separators**: Visual distinction between state content and action sections
+- **`<b><i>` Bold+italic section headers**: "Entry actions" and "Invoke" labels stand out clearly
+- **🔒 Invariants**: `meta.invariants` rendered with lock emoji (matches Stately.ai's visual language)
 - **⚡ Actions**: Entry and transition actions with lightning emoji
 - **◉ Invoke actors**: Actor source and ID
 - **IF guards**: `SUBMIT IF stockAvailable` format
 
 ## Invariants via `meta.invariants`
 
-XState doesn't have a built-in invariant field. Use `meta.invariants` array:
+XState doesn't have a built-in invariant field. This library introduces a **convention** of using `meta.invariants` array to document state invariants - conditions that must hold true while in that state.
+
+This convention is useful for:
+- Documenting system guarantees at each state
+- Generating test assertions from state machine definitions
+- Making implicit assumptions explicit
 
 ```typescript
 states: {
@@ -157,6 +163,8 @@ Renders as:
 🔒 all_containers_running
 🔒 memory_writable
 ```
+
+The 🔒 emoji matches Stately.ai's visual language for state constraints. This is a library convention, not part of the XState spec, but `meta` is the official place for custom metadata in XState.
 
 ## API
 
@@ -204,9 +212,10 @@ formatEventName("xstate.after.60000.machine..."); // "after 60000ms"
 - XState v5 TypeScript compatible
 - **Stately.ai visual parity** - matches the official editor's formatting
 - `<b>` bold state name headers
-- `<i>` italic section labels (Entry actions, Invoke)
+- `<b><i>` bold+italic section headers (Entry actions, Invoke)
+- `───────────` horizontal separators for visual distinction
 - `<br/>` proper line breaks
-- 🔒 `meta.invariants` support with lock emoji
+- 🔒 `meta.invariants` convention with lock emoji
 - ⚡ entry and transition actions with lightning emoji
 - ◉ invoke actors with source and ID
 - IF format for guards
