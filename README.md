@@ -18,66 +18,58 @@ npm install xstate-ts-to-mermaid
 import { setup } from "xstate";
 import { toMermaid } from "xstate-ts-to-mermaid";
 
-const containerMachine = setup({
+const trafficLightMachine = setup({
   types: {
-    events: {} as
-      | { type: "start" }
-      | { type: "restart_policy" }
-      | { type: "health_pass" }
-      | { type: "health_fail" }
-      | { type: "manual_restart" },
+    events: {} as { type: "TIMER" } | { type: "EMERGENCY" },
   },
 }).createMachine({
-  id: "container",
-  initial: "stopped",
+  id: "trafficLight",
+  initial: "green",
   states: {
-    stopped: {
-      on: {
-        start: { target: "starting" },
-        restart_policy: { target: "starting" },
-      },
+    green: {
+      description: "Cars may proceed",
+      on: { TIMER: "yellow" },
+      after: { 30000: "yellow" },
     },
-    starting: {
-      on: { health_pass: { target: "healthy" } },
-      after: { 30000: { target: "failed" } },
+    yellow: {
+      description: "Prepare to stop",
+      on: { TIMER: "red" },
+      after: { 5000: "red" },
     },
-    healthy: {
-      on: { health_fail: { target: "unhealthy" } },
-    },
-    unhealthy: {
-      on: { health_pass: { target: "healthy" } },
-      after: { 30000: { target: "stopped" } },
-    },
-    failed: {
-      on: { manual_restart: { target: "starting" } },
+    red: {
+      description: "Cars must stop",
+      on: { TIMER: "green", EMERGENCY: "yellow" },
+      after: { 30000: "green" },
     },
   },
 });
 
-console.log(toMermaid(containerMachine, { title: "Container Actor" }));
+console.log(toMermaid(trafficLightMachine, { title: "Traffic Light" }));
 ```
 
 Output:
 
 ```mermaid
 stateDiagram-v2
-    %% Container Actor
-    [*] --> stopped
-    stopped --> starting: start
-    stopped --> starting: restart_policy
-    starting --> healthy: health_pass
-    starting --> failed: after 30s
-    healthy --> unhealthy: health_fail
-    unhealthy --> healthy: health_pass
-    unhealthy --> stopped: after 30s
-    failed --> starting: manual_restart
+    %% Traffic Light
+    [*] --> green
+    green: Cars may proceed
+    yellow: Prepare to stop
+    red: Cars must stop
+    green --> yellow: TIMER
+    green --> yellow: after 30s
+    yellow --> red: TIMER
+    yellow --> red: after 5s
+    red --> green: TIMER
+    red --> yellow: EMERGENCY
+    red --> green: after 30s
 ```
 
 ## API
 
 ### `toMermaid(machine, options?)`
 
-Produces a flat diagram with all states at the same level. Good for overview.
+Flat diagram - all states at same level. Good for overview.
 
 ### `toMermaidNested(machine, options?)`
 
@@ -87,22 +79,27 @@ Preserves hierarchy using Mermaid's `state {}` syntax for compound states.
 
 ```typescript
 interface MermaidOptions {
-  title?: string; // Comment at top of diagram
+  title?: string;
+  maxDescriptionLength?: number; // 0 = no limit (default)
 }
+```
+
+### Exported Helpers
+
+```typescript
+import { getStateName, formatEventName, getDescription } from "xstate-ts-to-mermaid";
+
+getStateName("machine.parent.child"); // "child"
+formatEventName("xstate.after.60000.machine..."); // "after 60s"
 ```
 
 ## Features
 
 - XState v5 TypeScript compatible
+- Preserves state descriptions as labels
 - Handles nested/compound states
 - Formats timeout events (`xstate.after.60000...` -> `after 60s`)
 - Extracts clean state names from dotted paths
-
-## Tested With
-
-- XState v5
-- @xstate/graph v3
-- Manually verified output renders correctly in GitHub markdown and Mermaid Live Editor
 
 ## License
 

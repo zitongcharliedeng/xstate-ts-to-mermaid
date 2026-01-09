@@ -38,8 +38,8 @@
     "xstate": "^5.0.0"
   },
   "devDependencies": {
-    "@xstate/graph": "^3",
-    "xstate": "^5",
-    "typescript": "^5"
+    "@xstate/graph": "^3.0.4",
+    "typescript": "^5",
+    "xstate": "^5.25.0"
   }
 }

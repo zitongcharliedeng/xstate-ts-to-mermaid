@@ -1,9 +1,8 @@
 /**
- * xstate-to-mermaid
- * Convert XState v5 state machines to Mermaid stateDiagram-v2 format
+ * xstate-ts-to-mermaid
+ * Convert XState v5 TypeScript state machines to Mermaid stateDiagram-v2 format
  *
- * Uses @xstate/graph's toDirectedGraph() to traverse state machine structure
- * and generates valid Mermaid syntax for rendering.
+ * Uses @xstate/graph's toDirectedGraph() to traverse state machine structure.
  */
 
 import {
@@ -13,46 +12,46 @@ import {
 import { type AnyStateMachine } from "xstate";
 
 export interface MermaidOptions {
-  /** Title comment to add at the top of the diagram */
   title?: string;
-  /** Whether to include nested state structure (default: false = flat) */
-  nested?: boolean;
+  /** Max description length (0 = no limit). Default: 0 */
+  maxDescriptionLength?: number;
 }
 
 /**
- * Extract the short state name from a fully qualified XState id
- * e.g., "aito.system.running" -> "running"
+ * Extract short state name from fully qualified XState id
+ * "machine.parent.child" -> "child"
  */
-function getStateName(id: string): string {
+export function getStateName(id: string): string {
   const parts = id.split(".");
   return parts[parts.length - 1];
 }
 
 /**
- * Format XState internal event names into human-readable labels
- * e.g., "xstate.after.60000.aito.system..." -> "after 60s"
+ * Format XState internal event names to human-readable
+ * "xstate.after.60000.machine..." -> "after 60s"
  */
-function formatEventName(event: string): string {
+export function formatEventName(event: string): string {
   if (event.startsWith("xstate.after.")) {
     const match = event.match(/xstate\.after\.(\d+)\./);
     if (match) {
       const ms = parseInt(match[1]);
-      if (ms >= 60000) {
-        const minutes = ms / 60000;
-        return `after ${minutes}m`;
-      }
-      const seconds = ms / 1000;
-      return `after ${seconds}s`;
+      if (ms >= 60000) return `after ${ms / 60000}m`;
+      return `after ${ms / 1000}s`;
     }
   }
   return event;
 }
 
 /**
- * Convert an XState v5 machine to Mermaid stateDiagram-v2 format (flat view)
- *
- * This produces a flat diagram where all states are at the same level,
- * showing all transitions regardless of nesting. Good for overview.
+ * Get description from state node
+ */
+export function getDescription(node: DirectedGraphNode): string | undefined {
+  const stateNode = node.stateNode as unknown as Record<string, unknown>;
+  return stateNode?.description as string | undefined;
+}
+
+/**
+ * Convert XState v5 machine to Mermaid stateDiagram-v2 (flat)
  */
 export function toMermaid(
   machine: AnyStateMachine,
@@ -61,20 +60,32 @@ export function toMermaid(
   const digraph = toDirectedGraph(machine);
   const lines: string[] = [];
   const seenEdges = new Set<string>();
+  const seenStates = new Set<string>();
+  const maxLen = options.maxDescriptionLength ?? 0;
 
   lines.push("stateDiagram-v2");
   if (options.title) {
     lines.push(`    %% ${options.title}`);
   }
 
-  // Add initial state transition
   const initial = machine.config.initial;
   if (initial && typeof initial === "string") {
     lines.push(`    [*] --> ${initial}`);
   }
 
-  // Recursively collect all edges from the graph
-  function collectEdges(node: DirectedGraphNode): void {
+  function collectAll(node: DirectedGraphNode): void {
+    const name = getStateName(node.id);
+    const desc = getDescription(node);
+
+    // Add state with description as note
+    if (desc && !seenStates.has(name)) {
+      seenStates.add(name);
+      const text = maxLen > 0 && desc.length > maxLen
+        ? desc.substring(0, maxLen) + "..."
+        : desc;
+      lines.push(`    ${name}: ${text}`);
+    }
+
     for (const edge of node.edges) {
       const sourceName = getStateName(edge.source.id);
       const targetName = getStateName(edge.target.id);
@@ -82,17 +93,14 @@ export function toMermaid(
       const key = `${sourceName}:${targetName}:${event}`;
       if (!seenEdges.has(key)) {
         seenEdges.add(key);
-        lines.push(
-          `    ${sourceName} --> ${targetName}: ${formatEventName(event)}`
-        );
+        lines.push(`    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
       }
     }
     for (const child of node.children) {
-      collectEdges(child);
+      collectAll(child);
     }
   }
 
-  // Process top-level edges
   for (const edge of digraph.edges) {
     const sourceName = getStateName(edge.source.id);
     const targetName = getStateName(edge.target.id);
@@ -100,25 +108,19 @@ export function toMermaid(
     const key = `${sourceName}:${targetName}:${event}`;
     if (!seenEdges.has(key)) {
       seenEdges.add(key);
-      lines.push(
-        `    ${sourceName} --> ${targetName}: ${formatEventName(event)}`
-      );
+      lines.push(`    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
     }
   }
 
-  // Collect from children
   for (const child of digraph.children) {
-    collectEdges(child);
+    collectAll(child);
   }
 
   return lines.join("\n");
 }
 
 /**
- * Convert an XState v5 machine to Mermaid with nested compound states
- *
- * This preserves the hierarchy using Mermaid's state {} syntax.
- * More accurate representation but can be complex for deep nesting.
+ * Convert XState v5 machine to Mermaid with nested compound states
  */
 export function toMermaidNested(
   machine: AnyStateMachine,
@@ -127,6 +129,7 @@ export function toMermaidNested(
   const digraph = toDirectedGraph(machine);
   const lines: string[] = [];
   const processedEdges = new Set<string>();
+  const maxLen = options.maxDescriptionLength ?? 0;
 
   lines.push("stateDiagram-v2");
   if (options.title) {
@@ -137,26 +140,21 @@ export function toMermaidNested(
     const pad = "    ".repeat(indent);
     const name = getStateName(node.id);
     const hasChildren = node.children && node.children.length > 0;
-
-    // Get description if available
+    const desc = getDescription(node);
     const stateNode = node.stateNode as unknown as Record<string, unknown>;
-    const description = stateNode?.description as string | undefined;
 
     if (hasChildren) {
       lines.push(`${pad}state ${name} {`);
 
-      // Add initial state transition within compound state
       const initial = stateNode?.initial;
       if (initial && typeof initial === "string") {
         lines.push(`${pad}    [*] --> ${initial}`);
       }
 
-      // Process children recursively
       for (const child of node.children) {
         processNode(child, indent + 1);
       }
 
-      // Process edges within this compound state
       for (const edge of node.edges) {
         const edgeKey = `${edge.source.id}->${edge.target.id}:${edge.transition.eventType}`;
         if (!processedEdges.has(edgeKey)) {
@@ -164,38 +162,31 @@ export function toMermaidNested(
           const sourceName = getStateName(edge.source.id);
           const targetName = getStateName(edge.target.id);
           const event = edge.transition.eventType;
-          lines.push(
-            `${pad}    ${sourceName} --> ${targetName}: ${formatEventName(event)}`
-          );
+          lines.push(`${pad}    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
         }
       }
 
       lines.push(`${pad}}`);
-    } else {
-      // Leaf state - add with description as note if present
-      if (description) {
-        lines.push(`${pad}state ${name}:::hasDesc`);
-        const truncated =
-          description.length > 50
-            ? description.substring(0, 50) + "..."
-            : description;
-        lines.push(`${pad}note right of ${name}: ${truncated}`);
+
+      if (desc) {
+        const text = maxLen > 0 && desc.length > maxLen ? desc.substring(0, maxLen) + "..." : desc;
+        lines.push(`${pad}note right of ${name}: ${text}`);
       }
+    } else if (desc) {
+      const text = maxLen > 0 && desc.length > maxLen ? desc.substring(0, maxLen) + "..." : desc;
+      lines.push(`${pad}${name}: ${text}`);
     }
   }
 
-  // Add initial state for the machine
   const initial = machine.config.initial;
   if (initial && typeof initial === "string") {
     lines.push(`    [*] --> ${initial}`);
   }
 
-  // Process all top-level children
   for (const child of digraph.children) {
     processNode(child, 1);
   }
 
-  // Process top-level edges
   for (const edge of digraph.edges) {
     const edgeKey = `${edge.source.id}->${edge.target.id}:${edge.transition.eventType}`;
     if (!processedEdges.has(edgeKey)) {
@@ -203,14 +194,11 @@ export function toMermaidNested(
       const sourceName = getStateName(edge.source.id);
       const targetName = getStateName(edge.target.id);
       const event = edge.transition.eventType;
-      lines.push(
-        `    ${sourceName} --> ${targetName}: ${formatEventName(event)}`
-      );
+      lines.push(`    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
     }
   }
 
   return lines.join("\n");
 }
 
-// Default export for convenience
 export default toMermaid;
