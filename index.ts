@@ -214,11 +214,10 @@ function buildStateLabel(
   lines.push(`━━━━━━━━━━━━━━`);
 
   // Tags FIRST (Stately.ai shows tags at top as small pill badges)
-  // Using superscript for raised smaller appearance
+  // All tags on same line, space-separated, using superscript
   if (tags.length > 0) {
-    for (const tag of tags) {
-      lines.push(`<sup>(${escapeMermaidText(tag)})</sup>`);
-    }
+    const tagLine = tags.map(tag => `(${escapeMermaidText(tag)})`).join(' ');
+    lines.push(`<sup>${tagLine}</sup>`);
   }
 
   // Description AFTER tags - superscript bold for prominence while staying compact
@@ -252,13 +251,13 @@ function buildStateLabel(
     }
   }
 
-  // Invokes: normal label, actor in brackets, Actor ID as superscript to hug closer to parent
+  // Invokes: normal label, bold actor in brackets, bold Actor ID as superscript
   if (invokes.length > 0) {
     lines.push(`────────`);
     lines.push(`Invoke`);
     for (const inv of invokes) {
-      lines.push(`[◉ ${escapeMermaidText(inv.src)}]`);
-      lines.push(`<sup>∟ ID∶ ${escapeMermaidText(inv.id)}</sup>`);
+      lines.push(`<b>[◉ ${escapeMermaidText(inv.src)}]</b>`);
+      lines.push(`<sup><b>∟ ID∶ ${escapeMermaidText(inv.id)}</b></sup>`);
     }
   }
 

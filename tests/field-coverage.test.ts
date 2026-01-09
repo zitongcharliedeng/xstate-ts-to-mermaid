@@ -105,8 +105,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "tags",
-    pattern: /<sup>\(Invariant∶invariant_a\)<\/sup>.*<sup>\(category\)<\/sup>/s,
-    description: "Tags in superscript parentheses with full Invariant label",
+    pattern: /<sup>\(Invariant∶invariant_a\) \(category\)<\/sup>/,
+    description: "Tags on same line in superscript with full Invariant label",
   },
   {
     field: "meta",
@@ -125,8 +125,8 @@ const checks: { field: string; pattern: RegExp; description: string }[] = [
   },
   {
     field: "invoke",
-    pattern: /Invoke.*\[◉ someService\].*<sup>∟ ID∶ FIELD_INVOKE_CHECK<\/sup>/s,
-    description: "Invoke: normal label, actor in brackets, ID as superscript with corner",
+    pattern: /Invoke.*<b>\[◉ someService\]<\/b>.*<sup><b>∟ ID∶ FIELD_INVOKE_CHECK<\/b><\/sup>/s,
+    description: "Invoke: normal label, bold actor in brackets, bold ID as superscript",
   },
   {
     field: "on (transitions)",
