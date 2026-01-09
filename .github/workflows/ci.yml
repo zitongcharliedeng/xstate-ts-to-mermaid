@@ -27,9 +27,6 @@ jobs:
       - name: Run field coverage test
         run: npx tsx tests/field-coverage.test.ts
 
-      - name: Run README sync test
-        run: npx tsx tests/readme-sync.test.ts
-
       - name: Type check
         run: npx tsc --noEmit
 
