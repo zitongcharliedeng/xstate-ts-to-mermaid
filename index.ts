@@ -197,12 +197,15 @@ function buildStateLabel(
 ): string {
   const lines: string[] = [];
 
-  // State name as bold header
-  lines.push(`<b>${name}</b>`);
+  // State name as prominent header block (like Stately.ai's dark header bar)
+  // Using heavy horizontal lines to create visual header separation
+  lines.push(`━━━━━━━━━━━━━━`);
+  lines.push(`<b>${name.toUpperCase()}</b>`);
+  lines.push(`━━━━━━━━━━━━━━`);
 
-  // Description (regular text)
+  // Description (italic to distinguish from tags)
   if (desc) {
-    lines.push(desc);
+    lines.push(`<i>${desc}</i>`);
   }
 
   // Tags - each on own line to prevent bad wrapping in narrow state boxes
@@ -222,30 +225,30 @@ function buildStateLabel(
     }
   }
 
-  // Entry actions (separator + bold label for visual distinction)
+  // Entry actions (separator + bold ALL CAPS label for visual distinction)
   // Using unicode box drawing for separator, ϟ (koppa) for lightning-like action symbol
   if (entry.length > 0) {
     lines.push(`────────`);
-    lines.push(`<b>Entry</b>`);
+    lines.push(`<b>ENTRY ACTIONS</b>`);
     for (const action of entry) {
       lines.push(`ϟ ${action}`);
     }
   }
 
-  // Exit actions (separator + bold label for visual distinction)
+  // Exit actions (separator + bold ALL CAPS label for visual distinction)
   if (exit.length > 0) {
     lines.push(`────────`);
-    lines.push(`<b>Exit</b>`);
+    lines.push(`<b>EXIT ACTIONS</b>`);
     for (const action of exit) {
       lines.push(`ϟ ${action}`);
     }
   }
 
-  // Invokes (separator + bold label for visual distinction)
+  // Invokes (separator + bold ALL CAPS label for visual distinction)
   // Using ◉ (fisheye) to match Stately.ai's invoke symbol
   if (invokes.length > 0) {
     lines.push(`────────`);
-    lines.push(`<b>Invoke</b>`);
+    lines.push(`<b>INVOKE</b>`);
     for (const inv of invokes) {
       lines.push(`◉ ${escapeMermaidText(inv.src)}`);
       lines.push(`Actor ID∶ ${escapeMermaidText(inv.id)}`);
