@@ -118,17 +118,18 @@ Output (actual generated output, not manually written):
 ```mermaid
 stateDiagram-v2
     %% Order Processing
+    %% ───────────────────────────
     [*] --> idle
     idle: <b>idle</b><br/>Waiting for order submission
     idle --> validating: SUBMIT IF stockAvailable<br/>⚡ reserveStock
-    validating: <b>validating</b><br/>🏷️ loading, 🔒 stock_reserved, 🔒 payment_not_charged<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
+    validating: <b>validating</b><br/>🏷️ loading<br/>🏷️ 🔒 stock_reserved<br/>🏷️ 🔒 payment_not_charged<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ notifyUser
     validating --> cancelled: CANCEL<br/>⚡ releaseStock
     validating --> processing: after 5000ms
-    processing: <b>processing</b><br/>Processing payment<br/>🏷️ loading, 🔒 stock_reserved<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
+    processing: <b>processing</b><br/>Processing payment<br/>🏷️ loading<br/>🏷️ 🔒 stock_reserved<br/>───────────<br/><b><i>Invoke</i></b><br/>◉ paymentProcessor<br/>Actor ID - payment
     processing --> completed: PAYMENT_SUCCESS
     processing --> failed: PAYMENT_FAILED
-    completed: <b>completed</b><br/>Order fulfilled<br/>🏷️ success, 🔒 payment_charged, 🔒 stock_shipped<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
-    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>🏷️ error, 🔒 stock_released<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
+    completed: <b>completed</b><br/>Order fulfilled<br/>🏷️ success<br/>🏷️ 🔒 payment_charged<br/>🏷️ 🔒 stock_shipped<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ chargeCard
+    failed: <b>failed</b><br/>Payment failed. Manual retry available.<br/>🏷️ error<br/>🏷️ 🔒 stock_released<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ releaseStock
     failed --> processing: RETRY IF hasValidPayment
     cancelled: <b>cancelled</b><br/>Order cancelled by user<br/>───────────<br/><b><i>Entry actions</i></b><br/>⚡ logCancellation<br/>───────────<br/><b><i>Exit actions</i></b><br/>⚡ cleanupResources
 ```

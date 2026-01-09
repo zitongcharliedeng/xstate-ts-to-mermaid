@@ -193,9 +193,11 @@ function buildStateLabel(
     lines.push(desc);
   }
 
-  // Tags with tag emoji
+  // Tags - each tag on its own line with tag emoji (matches Stately.ai pill styling)
   if (tags.length > 0) {
-    lines.push(`🏷️ ${tags.join(', ')}`);
+    for (const tag of tags) {
+      lines.push(`🏷️ ${tag}`);
+    }
   }
 
   // Meta as generic key-value pairs (italicized keys)
@@ -257,8 +259,12 @@ export function toMermaid(
   const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
 
   lines.push("stateDiagram-v2");
-  if (options.title) {
-    lines.push(`    %% ${options.title}`);
+  // Use machine ID as title if no explicit title provided
+  const machineId = (machine.config as { id?: string }).id;
+  const title = options.title || machineId;
+  if (title) {
+    lines.push(`    %% ${title}`);
+    lines.push(`    %% ───────────────────────────`);
   }
 
   const initial = machine.config.initial;
@@ -345,8 +351,12 @@ export function toMermaidNested(
   const includeMetaOpt = options.includeMeta ?? true;
 
   lines.push("stateDiagram-v2");
-  if (options.title) {
-    lines.push(`    %% ${options.title}`);
+  // Use machine ID as title if no explicit title provided
+  const machineId = (machine.config as { id?: string }).id;
+  const title = options.title || machineId;
+  if (title) {
+    lines.push(`    %% ${title}`);
+    lines.push(`    %% ───────────────────────────`);
   }
 
   function processNode(node: DirectedGraphNode, indent: number = 1): void {
