@@ -15,6 +15,14 @@ export interface MermaidOptions {
   title?: string;
   /** Max description length (0 = no limit). Default: 0 */
   maxDescriptionLength?: number;
+  /** Include guards in transition labels. Default: true */
+  includeGuards?: boolean;
+  /** Include actions in transition labels. Default: true */
+  includeActions?: boolean;
+  /** Include entry actions in state descriptions. Default: true */
+  includeEntryActions?: boolean;
+  /** Include invoke actors in state descriptions. Default: true */
+  includeInvokes?: boolean;
 }
 
 /**
@@ -51,6 +59,52 @@ export function getDescription(node: DirectedGraphNode): string | undefined {
 }
 
 /**
+ * Get entry actions from state node
+ */
+export function getEntryActions(node: DirectedGraphNode): string[] {
+  const stateNode = node.stateNode as unknown as Record<string, unknown>;
+  const entry = stateNode?.entry as Array<{ type: string }> | undefined;
+  return entry?.map(a => a.type).filter(t => t && !t.startsWith('xstate.')) || [];
+}
+
+/**
+ * Get invoke actors from state node
+ */
+export function getInvokes(node: DirectedGraphNode): Array<{ src: string; id: string }> {
+  const stateNode = node.stateNode as unknown as Record<string, unknown>;
+  const invoke = stateNode?.invoke as Array<{ src: string; id: string }> | undefined;
+  return invoke || [];
+}
+
+/**
+ * Format a transition label with event, guard, and actions
+ * Format: "event [guard] / action1, action2"
+ */
+export function formatTransitionLabel(
+  transition: { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] },
+  options: { includeGuards?: boolean; includeActions?: boolean } = {}
+): string {
+  const { includeGuards = true, includeActions = true } = options;
+
+  let label = formatEventName(transition.eventType);
+
+  if (includeGuards && transition.guard?.type) {
+    label += ` [${transition.guard.type}]`;
+  }
+
+  if (includeActions && transition.actions && transition.actions.length > 0) {
+    const actionNames = transition.actions
+      .map(a => a.type)
+      .filter(t => t && !t.startsWith('xstate.')); // Filter out internal xstate actions
+    if (actionNames.length > 0) {
+      label += ` / ${actionNames.join(', ')}`;
+    }
+  }
+
+  return label;
+}
+
+/**
  * Convert XState v5 machine to Mermaid stateDiagram-v2 (flat)
  */
 export function toMermaid(
@@ -62,6 +116,7 @@ export function toMermaid(
   const seenEdges = new Set<string>();
   const seenStates = new Set<string>();
   const maxLen = options.maxDescriptionLength ?? 0;
+  const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
 
   lines.push("stateDiagram-v2");
   if (options.title) {
@@ -73,27 +128,40 @@ export function toMermaid(
     lines.push(`    [*] --> ${initial}`);
   }
 
+  const includeEntry = options.includeEntryActions ?? true;
+  const includeInvoke = options.includeInvokes ?? true;
+
   function collectAll(node: DirectedGraphNode): void {
     const name = getStateName(node.id);
     const desc = getDescription(node);
+    const entry = includeEntry ? getEntryActions(node) : [];
+    const invokes = includeInvoke ? getInvokes(node) : [];
 
-    // Add state with description as note
-    if (desc && !seenStates.has(name)) {
-      seenStates.add(name);
-      const text = maxLen > 0 && desc.length > maxLen
-        ? desc.substring(0, maxLen) + "..."
-        : desc;
-      lines.push(`    ${name}: ${text}`);
+    // Build state description with all metadata
+    if (!seenStates.has(name)) {
+      const parts: string[] = [];
+      if (desc) parts.push(desc);
+      if (entry.length > 0) parts.push(`entry: ${entry.join(', ')}`);
+      if (invokes.length > 0) parts.push(`invoke: ${invokes.map(i => `${i.src}(${i.id})`).join(', ')}`);
+
+      if (parts.length > 0) {
+        seenStates.add(name);
+        let text = parts.join(' | ');
+        if (maxLen > 0 && text.length > maxLen) {
+          text = text.substring(0, maxLen) + "...";
+        }
+        lines.push(`    ${name}: ${text}`);
+      }
     }
 
     for (const edge of node.edges) {
       const sourceName = getStateName(edge.source.id);
       const targetName = getStateName(edge.target.id);
-      const event = edge.transition.eventType;
-      const key = `${sourceName}:${targetName}:${event}`;
+      const t = edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] };
+      const key = `${sourceName}:${targetName}:${t.eventType}`;
       if (!seenEdges.has(key)) {
         seenEdges.add(key);
-        lines.push(`    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
+        lines.push(`    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
       }
     }
     for (const child of node.children) {
@@ -104,11 +172,11 @@ export function toMermaid(
   for (const edge of digraph.edges) {
     const sourceName = getStateName(edge.source.id);
     const targetName = getStateName(edge.target.id);
-    const event = edge.transition.eventType;
-    const key = `${sourceName}:${targetName}:${event}`;
+    const t = edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] };
+    const key = `${sourceName}:${targetName}:${t.eventType}`;
     if (!seenEdges.has(key)) {
       seenEdges.add(key);
-      lines.push(`    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
+      lines.push(`    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
     }
   }
 
@@ -130,6 +198,7 @@ export function toMermaidNested(
   const lines: string[] = [];
   const processedEdges = new Set<string>();
   const maxLen = options.maxDescriptionLength ?? 0;
+  const labelOptions = { includeGuards: options.includeGuards, includeActions: options.includeActions };
 
   lines.push("stateDiagram-v2");
   if (options.title) {
@@ -156,13 +225,13 @@ export function toMermaidNested(
       }
 
       for (const edge of node.edges) {
-        const edgeKey = `${edge.source.id}->${edge.target.id}:${edge.transition.eventType}`;
+        const t = edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] };
+        const edgeKey = `${edge.source.id}->${edge.target.id}:${t.eventType}`;
         if (!processedEdges.has(edgeKey)) {
           processedEdges.add(edgeKey);
           const sourceName = getStateName(edge.source.id);
           const targetName = getStateName(edge.target.id);
-          const event = edge.transition.eventType;
-          lines.push(`${pad}    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
+          lines.push(`${pad}    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
         }
       }
 
@@ -188,13 +257,13 @@ export function toMermaidNested(
   }
 
   for (const edge of digraph.edges) {
-    const edgeKey = `${edge.source.id}->${edge.target.id}:${edge.transition.eventType}`;
+    const t = edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] };
+    const edgeKey = `${edge.source.id}->${edge.target.id}:${t.eventType}`;
     if (!processedEdges.has(edgeKey)) {
       processedEdges.add(edgeKey);
       const sourceName = getStateName(edge.source.id);
       const targetName = getStateName(edge.target.id);
-      const event = edge.transition.eventType;
-      lines.push(`    ${sourceName} --> ${targetName}: ${formatEventName(event)}`);
+      lines.push(`    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
     }
   }
 

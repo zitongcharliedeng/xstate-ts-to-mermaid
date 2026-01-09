@@ -81,13 +81,24 @@ Preserves hierarchy using Mermaid's `state {}` syntax for compound states.
 interface MermaidOptions {
   title?: string;
   maxDescriptionLength?: number; // 0 = no limit (default)
+  includeGuards?: boolean; // Show guards on transitions (default: true)
+  includeActions?: boolean; // Show transition actions (default: true)
+  includeEntryActions?: boolean; // Show entry actions on states (default: true)
+  includeInvokes?: boolean; // Show invoke actors on states (default: true)
 }
 ```
 
 ### Exported Helpers
 
 ```typescript
-import { getStateName, formatEventName, getDescription } from "xstate-ts-to-mermaid";
+import {
+  getStateName,
+  formatEventName,
+  getDescription,
+  getEntryActions,
+  getInvokes,
+  formatTransitionLabel,
+} from "xstate-ts-to-mermaid";
 
 getStateName("machine.parent.child"); // "child"
 formatEventName("xstate.after.60000.machine..."); // "after 60s"
@@ -97,9 +108,14 @@ formatEventName("xstate.after.60000.machine..."); // "after 60s"
 
 - XState v5 TypeScript compatible
 - Preserves state descriptions as labels
+- **Guards**: Shows guards on transitions as `event [guardName]`
+- **Transition actions**: Shows actions as `event / action1, action2`
+- **Entry actions**: Shows entry actions as `state: entry: action1, action2`
+- **Invoke actors**: Shows invoked actors as `state: invoke: machine(id)`
 - Handles nested/compound states
 - Formats timeout events (`xstate.after.60000...` -> `after 60s`)
 - Extracts clean state names from dotted paths
+- Zero information loss - all metadata from XState is preserved
 
 ## License
 
