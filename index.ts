@@ -356,28 +356,6 @@ export function toMermaid(
 }
 
 /**
- * Find the lowest common ancestor of two state IDs
- * @param id1 First state ID (e.g., "machine.a.b.c")
- * @param id2 Second state ID (e.g., "machine.a.d.e")
- * @returns The LCA ID (e.g., "machine.a")
- */
-function findLowestCommonAncestor(id1: string, id2: string): string {
-  const parts1 = id1.split('.');
-  const parts2 = id2.split('.');
-  const lca: string[] = [];
-
-  for (let i = 0; i < Math.min(parts1.length, parts2.length); i++) {
-    if (parts1[i] === parts2[i]) {
-      lca.push(parts1[i]!);
-    } else {
-      break;
-    }
-  }
-
-  return lca.join('.');
-}
-
-/**
  * Convert XState v5 machine to Mermaid with nested compound states
  */
 export function toMermaidNested(
@@ -459,8 +437,8 @@ export function toMermaidNested(
         processNode(child, indent + 1);
       }
 
-      // LCA-based edge rendering: only render edges where this node is the LCA
-      // This prevents forward references to states defined outside this block
+      // Source-scoped edge rendering: render edges where source is a descendant of current node
+      // This is the CORRECT approach - LCA-based rendering breaks GitHub's older mermaid
       for (const edge of allEdges) {
         const t = edge.transition;
         const edgeKey = `${edge.source.id}->${edge.target.id}:${t.eventType}`;
@@ -468,11 +446,9 @@ export function toMermaidNested(
         // Skip if already rendered
         if (processedEdges.has(edgeKey)) continue;
 
-        // Compute LCA of source and target
-        const lca = findLowestCommonAncestor(edge.source.id, edge.target.id);
-
-        // Only render if LCA matches current node ID
-        if (lca !== node.id) continue;
+        // Check if source is inside current node's scope
+        const sourceIsDescendant = edge.source.id.startsWith(node.id + '.');
+        if (!sourceIsDescendant) continue;
 
         // Skip cross-top-level transitions (e.g., genesis → system)
         // These cannot be rendered in Mermaid stateDiagram
@@ -519,7 +495,8 @@ export function toMermaidNested(
     processNode(child, 1);
   }
 
-  // Render any remaining edges whose LCA is the root (machine ID)
+  // Render any remaining edges not yet processed (top-level edges)
+  // These are edges whose source is a direct child of the machine root
   const machineId = digraph.id;
   for (const edge of allEdges) {
     const t = edge.transition;
@@ -528,11 +505,10 @@ export function toMermaidNested(
     // Skip if already rendered
     if (processedEdges.has(edgeKey)) continue;
 
-    // Compute LCA of source and target
-    const lca = findLowestCommonAncestor(edge.source.id, edge.target.id);
-
-    // Only render if LCA matches machine root
-    if (lca !== machineId) continue;
+    // Check if source is a direct child of machine root
+    const sourceIsDirectChild = edge.source.id.startsWith(machineId + '.') &&
+      edge.source.id.split('.').length === 2;
+    if (!sourceIsDirectChild) continue;
 
     // Skip cross-top-level transitions
     const sourceParts = edge.source.id.split('.');
