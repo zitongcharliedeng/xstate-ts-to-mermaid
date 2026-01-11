@@ -356,6 +356,28 @@ export function toMermaid(
 }
 
 /**
+ * Find the lowest common ancestor of two state IDs
+ * @param id1 First state ID (e.g., "machine.a.b.c")
+ * @param id2 Second state ID (e.g., "machine.a.d.e")
+ * @returns The LCA ID (e.g., "machine.a")
+ */
+function findLowestCommonAncestor(id1: string, id2: string): string {
+  const parts1 = id1.split('.');
+  const parts2 = id2.split('.');
+  const lca: string[] = [];
+
+  for (let i = 0; i < Math.min(parts1.length, parts2.length); i++) {
+    if (parts1[i] === parts2[i]) {
+      lca.push(parts1[i]!);
+    } else {
+      break;
+    }
+  }
+
+  return lca.join('.');
+}
+
+/**
  * Convert XState v5 machine to Mermaid with nested compound states
  */
 export function toMermaidNested(
@@ -365,6 +387,39 @@ export function toMermaidNested(
   const digraph = toDirectedGraph(machine);
   const lines: string[] = [];
   const processedEdges = new Set<string>();
+
+  // Collect ALL edges from the entire graph for LCA-based rendering
+  const allEdges: Array<{
+    source: { id: string };
+    target: { id: string };
+    transition: { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] };
+  }> = [];
+
+  function collectEdges(node: DirectedGraphNode): void {
+    for (const edge of node.edges) {
+      allEdges.push({
+        source: { id: edge.source.id },
+        target: { id: edge.target.id },
+        transition: edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] },
+      });
+    }
+    for (const child of node.children) {
+      collectEdges(child);
+    }
+  }
+
+  // Collect edges from all children (root edges handled separately)
+  for (const child of digraph.children) {
+    collectEdges(child);
+  }
+  // Also include root-level edges
+  for (const edge of digraph.edges) {
+    allEdges.push({
+      source: { id: edge.source.id },
+      target: { id: edge.target.id },
+      transition: edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] },
+    });
+  }
   const maxLen = options.maxDescriptionLength ?? 0;
   // Resolve optional properties to concrete booleans for exactOptionalPropertyTypes compliance
   const labelOptions = {
@@ -404,15 +459,38 @@ export function toMermaidNested(
         processNode(child, indent + 1);
       }
 
-      for (const edge of node.edges) {
-        const t = edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] };
+      // LCA-based edge rendering: only render edges where this node is the LCA
+      // This prevents forward references to states defined outside this block
+      for (const edge of allEdges) {
+        const t = edge.transition;
         const edgeKey = `${edge.source.id}->${edge.target.id}:${t.eventType}`;
-        if (!processedEdges.has(edgeKey)) {
+
+        // Skip if already rendered
+        if (processedEdges.has(edgeKey)) continue;
+
+        // Compute LCA of source and target
+        const lca = findLowestCommonAncestor(edge.source.id, edge.target.id);
+
+        // Only render if LCA matches current node ID
+        if (lca !== node.id) continue;
+
+        // Skip cross-top-level transitions (e.g., genesis → system)
+        // These cannot be rendered in Mermaid stateDiagram
+        const sourceParts = edge.source.id.split('.');
+        const targetParts = edge.target.id.split('.');
+        const sourceTopLevel = sourceParts.length > 1 ? sourceParts[1] : '';
+        const targetTopLevel = targetParts.length > 1 ? targetParts[1] : '';
+        if (sourceTopLevel && targetTopLevel && sourceTopLevel !== targetTopLevel) {
+          // Cross-top-level transition - skip it
           processedEdges.add(edgeKey);
-          const sourceName = getStateName(edge.source.id);
-          const targetName = getStateName(edge.target.id);
-          lines.push(`${pad}    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
+          continue;
         }
+
+        // Render the edge
+        processedEdges.add(edgeKey);
+        const sourceName = getStateName(edge.source.id);
+        const targetName = getStateName(edge.target.id);
+        lines.push(`${pad}    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
       }
 
       lines.push(`${pad}}`);
@@ -441,15 +519,36 @@ export function toMermaidNested(
     processNode(child, 1);
   }
 
-  for (const edge of digraph.edges) {
-    const t = edge.transition as { eventType: string; guard?: { type: string } | null; actions?: readonly { type: string }[] };
+  // Render any remaining edges whose LCA is the root (machine ID)
+  const machineId = digraph.id;
+  for (const edge of allEdges) {
+    const t = edge.transition;
     const edgeKey = `${edge.source.id}->${edge.target.id}:${t.eventType}`;
-    if (!processedEdges.has(edgeKey)) {
+
+    // Skip if already rendered
+    if (processedEdges.has(edgeKey)) continue;
+
+    // Compute LCA of source and target
+    const lca = findLowestCommonAncestor(edge.source.id, edge.target.id);
+
+    // Only render if LCA matches machine root
+    if (lca !== machineId) continue;
+
+    // Skip cross-top-level transitions
+    const sourceParts = edge.source.id.split('.');
+    const targetParts = edge.target.id.split('.');
+    const sourceTopLevel = sourceParts.length > 1 ? sourceParts[1] : '';
+    const targetTopLevel = targetParts.length > 1 ? targetParts[1] : '';
+    if (sourceTopLevel && targetTopLevel && sourceTopLevel !== targetTopLevel) {
       processedEdges.add(edgeKey);
-      const sourceName = getStateName(edge.source.id);
-      const targetName = getStateName(edge.target.id);
-      lines.push(`    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
+      continue;
     }
+
+    // Render the edge at root level
+    processedEdges.add(edgeKey);
+    const sourceName = getStateName(edge.source.id);
+    const targetName = getStateName(edge.target.id);
+    lines.push(`    ${sourceName} --> ${targetName}: ${formatTransitionLabel(t, labelOptions)}`);
   }
 
   return lines.join("\n");
