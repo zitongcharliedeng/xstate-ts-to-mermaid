@@ -428,7 +428,9 @@ export function toMermaidNested(
     if (hasChildren) {
       lines.push(`${pad}state ${name} {`);
 
-      const initial = stateNode?.initial;
+      // XState v5: initial is stored in config.initial, not directly on stateNode
+      const config = stateNode?.config as Record<string, unknown> | undefined;
+      const initial = config?.initial;
       if (initial && typeof initial === "string") {
         lines.push(`${pad}    [*] --> ${initial}`);
       }
@@ -438,7 +440,6 @@ export function toMermaidNested(
       }
 
       // Source-scoped edge rendering: render edges where source is a descendant of current node
-      // This is the CORRECT approach - LCA-based rendering breaks GitHub's older mermaid
       for (const edge of allEdges) {
         const t = edge.transition;
         const edgeKey = `${edge.source.id}->${edge.target.id}:${t.eventType}`;
@@ -450,16 +451,17 @@ export function toMermaidNested(
         const sourceIsDescendant = edge.source.id.startsWith(node.id + '.');
         if (!sourceIsDescendant) continue;
 
-        // Skip cross-top-level transitions (e.g., genesis → system)
-        // These cannot be rendered in Mermaid stateDiagram
+        // Skip cross-compound-state transitions (e.g., genesis.x --> system.y)
+        // Only applies when BOTH source and target are nested inside compound states (depth >= 3)
         const sourceParts = edge.source.id.split('.');
         const targetParts = edge.target.id.split('.');
-        const sourceTopLevel = sourceParts.length > 1 ? sourceParts[1] : '';
-        const targetTopLevel = targetParts.length > 1 ? targetParts[1] : '';
-        if (sourceTopLevel && targetTopLevel && sourceTopLevel !== targetTopLevel) {
-          // Cross-top-level transition - skip it
-          processedEdges.add(edgeKey);
-          continue;
+        if (sourceParts.length >= 3 && targetParts.length >= 3) {
+          const sourceCompound = sourceParts[1];
+          const targetCompound = targetParts[1];
+          if (sourceCompound && targetCompound && sourceCompound !== targetCompound) {
+            processedEdges.add(edgeKey);
+            continue;
+          }
         }
 
         // Render the edge
@@ -497,7 +499,6 @@ export function toMermaidNested(
 
   // Render any remaining edges not yet processed (top-level edges)
   // These are edges whose source is a direct child of the machine root
-  const machineId = digraph.id;
   for (const edge of allEdges) {
     const t = edge.transition;
     const edgeKey = `${edge.source.id}->${edge.target.id}:${t.eventType}`;
@@ -505,19 +506,19 @@ export function toMermaidNested(
     // Skip if already rendered
     if (processedEdges.has(edgeKey)) continue;
 
-    // Check if source is a direct child of machine root
-    const sourceIsDirectChild = edge.source.id.startsWith(machineId + '.') &&
-      edge.source.id.split('.').length === 2;
-    if (!sourceIsDirectChild) continue;
-
-    // Skip cross-top-level transitions
+    // Skip cross-compound-state transitions (e.g., genesis.x --> system.y)
+    // These cannot be rendered in Mermaid stateDiagram
+    // Only applies when BOTH source and target are nested inside compound states (depth >= 3)
     const sourceParts = edge.source.id.split('.');
     const targetParts = edge.target.id.split('.');
-    const sourceTopLevel = sourceParts.length > 1 ? sourceParts[1] : '';
-    const targetTopLevel = targetParts.length > 1 ? targetParts[1] : '';
-    if (sourceTopLevel && targetTopLevel && sourceTopLevel !== targetTopLevel) {
-      processedEdges.add(edgeKey);
-      continue;
+    if (sourceParts.length >= 3 && targetParts.length >= 3) {
+      const sourceCompound = sourceParts[1];
+      const targetCompound = targetParts[1];
+      if (sourceCompound && targetCompound && sourceCompound !== targetCompound) {
+        // Cross-compound transition - skip it
+        processedEdges.add(edgeKey);
+        continue;
+      }
     }
 
     // Render the edge at root level

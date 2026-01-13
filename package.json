@@ -17,8 +17,9 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "npm run test:fields",
+    "test": "npm run test:fields && npm run test:nested",
     "test:fields": "npx tsx tests/field-coverage.test.ts",
+    "test:nested": "npx tsx tests/nested-coverage.test.ts",
     "example": "npx tsx examples/order-machine.ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm run test"
